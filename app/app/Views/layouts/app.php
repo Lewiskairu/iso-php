@@ -347,23 +347,28 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
 
         /* Topbar brand — logo + name always visible */
         .topbar-brand {
-            display: flex; align-items: center; gap: 10px;
+            display: flex; align-items: center; gap: 12px;
             text-decoration: none; color: inherit;
             flex-shrink: 0;
+            overflow: visible;
         }
         @media (min-width: 769px) {
             .topbar-brand { display: none; }
             html.sidebar-collapsed .topbar-brand { display: flex; }
         }
         .topbar-logo-mark {
-            width: 58px; height: 58px;
-            border-radius: 20px;
+            width: 82px; height: 82px;
+            border-radius: 999px;
             background: linear-gradient(135deg, var(--brand), var(--accent));
             display: grid; place-items: center;
             font-weight: 800; font-size: 1.05rem; color: #fff;
             overflow: hidden; flex-shrink: 0;
             box-shadow: 0 8px 20px rgba(15,23,42,.22);
-            margin-top: 2px;
+            margin: -9px 0;
+            border: 3px solid rgba(255,255,255,.92);
+        }
+        [data-bs-theme="dark"] .topbar-logo-mark {
+            border-color: rgba(12,26,46,.92);
         }
         .topbar-logo-mark img { width: 100%; height: 100%; object-fit: cover; }
         .topbar-brand-name {
@@ -828,6 +833,8 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
             .auth-mobile-logo { display: flex; }
             .auth-logo-wrap { margin-bottom: 24px; display: none; }
             .topbar-brand { display: flex; }
+            .topbar-logo-mark { width: 70px; height: 70px; }
+            .topbar-brand-name { font-size: .95rem; }
         }
         @media (max-width: 520px) {
             .grid { grid-template-columns: 1fr; }
