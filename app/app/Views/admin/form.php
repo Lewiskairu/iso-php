@@ -35,10 +35,32 @@
     <h1><?= e($record ? 'Edit ' . $module['label'] : 'Create ' . $module['label']) ?></h1>
     <p class="muted">Image fields can upload directly into the public uploads folder or keep an existing URL/path.</p>
     <?php $isProductsModule = (($module['key'] ?? '') === 'products'); ?>
+    <?php $isHeroSlidesModule = (($module['key'] ?? '') === 'hero_slides'); ?>
+    <?php
+    $heroSlideRouteSuggestions = [
+        '/',
+        '/about',
+        '/assessments',
+        '/assessments/create',
+        '/products',
+        '/partner',
+        '/nominate',
+        '/certification/request',
+        '/terms',
+        '/login',
+        '/signup',
+    ];
+    ?>
     <?php if ($isProductsModule): ?>
         <div class="notice section" style="border-color: rgba(20,184,166,.35); background: rgba(20,184,166,.08);">
             <strong style="display:block; margin-bottom:4px;">Product Form Enhancements</strong>
             <span>SKU is auto-generated and currency is prefilled from settings. Use image upload for primary product image.</span>
+        </div>
+    <?php endif; ?>
+    <?php if ($isHeroSlidesModule && !$record): ?>
+        <div class="notice section" style="border-color: rgba(20,184,166,.35); background: rgba(20,184,166,.08);">
+            <strong style="display:block; margin-bottom:4px;">Hero Slide Defaults</strong>
+            <span>New slides start as active and sort order auto-suggests the next available slot. Duplicate or empty sort order values are automatically shifted to the next free number when saved.</span>
         </div>
     <?php endif; ?>
 
@@ -61,7 +83,7 @@
                 'currency_code', 'tax_mode', 'invoice_format', 'order_workflow', 'payment_methods',
             ],
             'iso_compliance' => [
-                'scoring_mode', 'readiness_threshold', 'certificate_validity_months', 'audit_workflow',
+                'default_assessment_standard_id', 'scoring_mode', 'readiness_threshold', 'certificate_validity_months', 'audit_workflow',
             ],
             'documents' => [
                 'max_upload_size_mb', 'allowed_file_types', 'storage_location', 'versioning_enabled', 'retention_policy_days',
@@ -121,6 +143,12 @@
                     $value = $defaultValue;
                 }
             }
+            if (!$record && $isHeroSlidesModule) {
+                $defaultValue = $defaults[$field] ?? null;
+                if ($defaultValue !== null && $defaultValue !== '') {
+                    $value = $defaultValue;
+                }
+            }
             if (!$record && $isProductsModule) {
                 if ($field === 'sku' && empty($value) && !empty($productDefaults['sku'])) {
                     $value = $productDefaults['sku'];
@@ -171,11 +199,19 @@
                            type="<?= e($type === 'number' ? 'number' : ($type === 'password' ? 'password' : 'text')) ?>"
                            name="<?= e((string) $field) ?>"
                            value="<?= e($type === 'password' ? '' : (string) $value) ?>"
+                           <?= ($isHeroSlidesModule && $field === 'sort_order') ? 'min="1" step="1"' : '' ?>
                            <?= ($isProductsModule && in_array($field, ['sku', 'currency'], true) && !$record) ? 'readonly' : '' ?>
                            <?= (($module['key'] ?? '') === 'site_settings' && $field === 'key') ? 'list="siteSettingsKeySuggestions"' : '' ?>
+                           <?= ($isHeroSlidesModule && in_array($field, ['cta_link', 'secondary_cta_link'], true)) ? 'list="heroSlideRouteSuggestions" placeholder="/about or https://example.com"' : '' ?>
                            <?= !empty($meta['required']) && !$record ? 'required' : '' ?>>
                     <?php if ($isProductsModule && $field === 'sku' && !$record): ?>
                         <small class="field-help">Auto-generated SKU. You can regenerate by changing product name before save.</small>
+                    <?php endif; ?>
+                    <?php if ($isHeroSlidesModule && $field === 'sort_order'): ?>
+                        <small class="field-help">Leave as suggested to keep the next available slide position.</small>
+                    <?php endif; ?>
+                    <?php if ($isHeroSlidesModule && in_array($field, ['cta_link', 'secondary_cta_link'], true)): ?>
+                        <small class="field-help">Choose a user-facing page path from suggestions or enter a full external URL.</small>
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
@@ -185,6 +221,13 @@
             <datalist id="siteSettingsKeySuggestions">
                 <?php foreach ($flatSettingKeys as $suggestedKey): ?>
                     <option value="<?= e($suggestedKey) ?>"></option>
+                <?php endforeach; ?>
+            </datalist>
+        <?php endif; ?>
+        <?php if ($isHeroSlidesModule): ?>
+            <datalist id="heroSlideRouteSuggestions">
+                <?php foreach ($heroSlideRouteSuggestions as $routeSuggestion): ?>
+                    <option value="<?= e($routeSuggestion) ?>"></option>
                 <?php endforeach; ?>
             </datalist>
         <?php endif; ?>

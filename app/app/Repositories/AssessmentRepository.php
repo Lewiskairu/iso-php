@@ -15,6 +15,50 @@ final class AssessmentRepository
         )->fetchAll();
     }
 
+    public function getDefaultStandardId(): ?string
+    {
+        $configured = Database::query(
+            'SELECT value
+             FROM site_settings
+             WHERE `key` = :key
+             LIMIT 1',
+            ['key' => 'default_assessment_standard_id']
+        )->fetchColumn();
+
+        if ($configured !== false && $configured !== null && trim((string) $configured) !== '') {
+            $exists = Database::query(
+                'SELECT id
+                 FROM iso_standards
+                 WHERE id = :id AND active = TRUE
+                 LIMIT 1',
+                ['id' => trim((string) $configured)]
+            )->fetchColumn();
+
+            if ($exists !== false && $exists !== null) {
+                return (string) $exists;
+            }
+        }
+
+        $firstActive = Database::query(
+            'SELECT id FROM iso_standards WHERE active = TRUE ORDER BY code ASC LIMIT 1'
+        )->fetchColumn();
+
+        return $firstActive !== false && $firstActive !== null ? (string) $firstActive : null;
+    }
+
+    public function findStandardById(string $standardId): ?array
+    {
+        $row = Database::query(
+            'SELECT id, code, name
+             FROM iso_standards
+             WHERE id = :id AND active = TRUE
+             LIMIT 1',
+            ['id' => $standardId]
+        )->fetch();
+
+        return $row ?: null;
+    }
+
     public function getUserAssessments(string $userId): array
     {
         return Database::query(

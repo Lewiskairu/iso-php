@@ -107,6 +107,23 @@ function asset_url(?string $path): string
     return url('/' . ltrim($value, '/'));
 }
 
+function external_url(?string $value): string
+{
+    $url = trim((string) $value);
+    if ($url === '') {
+        return '';
+    }
+
+    if (
+        preg_match('/^(https?:\/\/|mailto:|tel:|#)/i', $url) === 1
+        || str_starts_with($url, '//')
+    ) {
+        return $url;
+    }
+
+    return 'https://' . ltrim($url, '/');
+}
+
 function old(string $key, mixed $default = ''): mixed
 {
     $old = $_SESSION['_flash']['old'] ?? [];

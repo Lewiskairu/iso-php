@@ -106,6 +106,7 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
             background: #f1f5f9;
             color: #0f172a;
             min-height: 100vh;
+            overflow-x: hidden;
         }
         [data-bs-theme="dark"] body {
             background: #060e1a;
@@ -451,9 +452,10 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
             min-height: 100vh;
             display: flex; flex-direction: column;
             transition: margin-left .25s ease;
+            min-width: 0;
         }
         html.sidebar-collapsed .app-main { margin-left: 0; }
-        .page-content { padding: 28px 28px 0; flex: 1; }
+        .page-content { padding: 28px 28px 0; flex: 1; min-width: 0; }
 
         /* ── Footer ── */
         .app-footer {
@@ -510,6 +512,7 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
             border: 1px solid rgba(15,23,42,.07);
             border-radius: 16px;
             box-shadow: 0 1px 3px rgba(15,23,42,.05);
+            min-width: 0;
         }
         [data-bs-theme="dark"] .card,
         [data-bs-theme="dark"] .surface,
@@ -554,6 +557,7 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
         .stack { display: grid; gap: 14px; }
         .actions, .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .toolbar { justify-content: space-between; }
+        .toolbar > *, .actions > * { min-width: 0; }
         .card-link { display: block; text-decoration: none; color: inherit; height: 100%; }
         .card-link:hover { transform: translateY(-2px); transition: transform .18s ease; }
 
@@ -578,9 +582,10 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
         .table-wrap {
             overflow-x: auto; border-radius: 12px;
             border: 1px solid rgba(15,23,42,.07);
+            -webkit-overflow-scrolling: touch;
         }
         [data-bs-theme="dark"] .table-wrap { border-color: rgba(255,255,255,.07); }
-        .table { width: 100%; border-collapse: collapse; }
+        .table { width: 100%; min-width: 640px; border-collapse: collapse; }
         .table th, .table td { padding: 13px 16px; text-align: left; }
         .table th {
             font-size: .72rem; text-transform: uppercase;
@@ -810,6 +815,10 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
         /* ── Responsive ── */
         @media (max-width: 1024px) {
             .split-grid, .footer-inner { grid-template-columns: 1fr; }
+            .app-topbar { padding: 0 16px; }
+            .page-content { padding: 24px 20px 0; }
+            .app-footer { margin: 28px 20px 0; }
+            .footer-copyright { flex-direction: column; align-items: flex-start; gap: 8px; }
             .auth-brand-panel { flex: 0 0 380px; padding: 40px 36px; }
         }
         @media (max-width: 768px) {
@@ -823,6 +832,22 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
             html.sidebar-collapsed .app-main { margin-left: 0; }
             .page-content { padding: 20px 16px 0; }
             .app-footer { margin: 24px 16px 0; }
+            .hero, .card, .surface, .metric-card, .panel { padding: 20px; }
+            .table { min-width: 580px; }
+            .table th, .table td { padding: 11px 12px; }
+            input, select, textarea { font-size: 16px; }
+            .app-topbar { padding: 0 12px; gap: 8px; }
+            .topbar-title { display: none; }
+            .topbar-actions { gap: 6px; }
+            .topbar-user-btn { padding: 5px; }
+            .topbar-user-btn span,
+            .topbar-user-btn .bi-chevron-down { display: none; }
+            .topbar-logo-mark { width: 54px; height: 54px; margin: 0; }
+            .topbar-brand-name {
+                max-width: 140px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
             /* Auth page stacked on mobile */
             .auth-page { flex-direction: column; margin: -20px -16px 0; }
             .auth-brand-panel { flex: none; padding: 32px 24px; }
@@ -833,11 +858,16 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
             .auth-mobile-logo { display: flex; }
             .auth-logo-wrap { margin-bottom: 24px; display: none; }
             .topbar-brand { display: flex; }
-            .topbar-logo-mark { width: 70px; height: 70px; }
             .topbar-brand-name { font-size: .95rem; }
         }
         @media (max-width: 520px) {
             .grid { grid-template-columns: 1fr; }
+            .actions > * { width: 100%; justify-content: center; }
+            .button { width: 100%; justify-content: center; }
+            .topbar-brand-name { max-width: 110px; font-size: .85rem; }
+            .topbar-btn { width: 36px; height: 36px; }
+            .topbar-user-btn { min-width: 36px; }
+            .table { min-width: 520px; }
             .auth-brand-panel { display: none; }
             .auth-form-panel { min-height: 100vh; }
             .auth-mobile-logo { display: flex; }
@@ -1190,8 +1220,9 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
                 <?php if ($partners): ?>
                     <div class="d-flex flex-wrap gap-2 mt-2">
                         <?php foreach (array_slice($partners, 0, 4) as $partner): ?>
-                            <a class="partner-logo" href="<?= e((string) ($partner['url'] ?: '#')) ?>"
-                               <?= !empty($partner['url']) ? 'target="_blank" rel="noreferrer"' : '' ?>>
+                            <?php $partnerHref = external_url((string) ($partner['url'] ?? '')); ?>
+                            <a class="partner-logo" href="<?= e($partnerHref ?: '#') ?>"
+                               <?= $partnerHref !== '' ? 'target="_blank" rel="noreferrer"' : '' ?>>
                                 <?php if (!empty($partner['logo_url'])): ?>
                                     <img src="<?= e(asset_url((string) $partner['logo_url'])) ?>" alt="<?= e((string) $partner['name']) ?>" loading="lazy">
                                 <?php else: ?>

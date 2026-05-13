@@ -25,7 +25,8 @@
 
             <div class="form-row">
                 <label for="title">Assessment title</label>
-                <input id="title" class="<?= has_error('title') ? 'is-invalid' : '' ?>" type="text" name="title" value="<?= e((string) old('title')) ?>" required>
+                <input id="title" class="<?= has_error('title') ? 'is-invalid' : '' ?>" type="text" name="title" value="<?= e((string) old('title')) ?>" readonly>
+                <span class="field-help">The title is generated automatically from the selected ISO standard and current date.</span>
                 <?php if (has_error('title')): ?><span class="field-error"><?= e((string) field_error('title')) ?></span><?php endif; ?>
             </div>
 
@@ -34,11 +35,18 @@
                 <select id="iso_standard_id" class="<?= has_error('iso_standard_id') ? 'is-invalid' : '' ?>" name="iso_standard_id" required>
                     <option value="">Select a standard</option>
                     <?php foreach ($standards as $standard): ?>
-                        <option value="<?= e((string) $standard['id']) ?>" <?= (string) old('iso_standard_id') === (string) $standard['id'] ? 'selected' : '' ?>>
+                        <?php
+                        $selectedStandardId = (string) old('iso_standard_id', (string) ($defaultStandardId ?? ''));
+                        ?>
+                        <option value="<?= e((string) $standard['id']) ?>"
+                            data-code="<?= e((string) $standard['code']) ?>"
+                            data-name="<?= e((string) $standard['name']) ?>"
+                            <?= $selectedStandardId === (string) $standard['id'] ? 'selected' : '' ?>>
                             <?= e($standard['code'] . ' - ' . $standard['name']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <span class="field-help">Set `default_assessment_standard_id` in site settings to control the preselected active test.</span>
                 <?php if (has_error('iso_standard_id')): ?><span class="field-error"><?= e((string) field_error('iso_standard_id')) ?></span><?php endif; ?>
             </div>
 
@@ -57,3 +65,33 @@
         </form>
     </section>
 </section>
+
+<script>
+(() => {
+    const standardSelect = document.getElementById('iso_standard_id');
+    const titleInput = document.getElementById('title');
+    if (!standardSelect || !titleInput) return;
+
+    const formatNow = () => {
+        const now = new Date();
+        const pad = (value) => String(value).padStart(2, '0');
+        return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    };
+
+    const syncTitle = () => {
+        const selected = standardSelect.options[standardSelect.selectedIndex];
+        if (!selected || !selected.value) {
+            titleInput.value = '';
+            return;
+        }
+
+        const code = (selected.dataset.code || '').trim();
+        const name = (selected.dataset.name || '').trim();
+        const base = [code, name].filter(Boolean).join(' ').trim() || 'Assessment';
+        titleInput.value = `${base} - ${formatNow()}`;
+    };
+
+    standardSelect.addEventListener('change', syncTitle);
+    syncTitle();
+})();
+</script>

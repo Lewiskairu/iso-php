@@ -16,6 +16,8 @@ $heroImage        = (string) ($hero['hero_image']              ?? '');
 // About block
 $aboutVision  = (string) ($about['vision']  ?? '');
 $aboutMission = (string) ($about['mission'] ?? '');
+$aboutTagline = (string) ($about['tagline'] ?? 'Operational excellence aligned to global standards.');
+$featuredStandards = array_slice($standards, 0, 5);
 ?>
 
 <style>
@@ -29,6 +31,343 @@ $aboutMission = (string) ($about['mission'] ?? '');
     padding:6px 10px; border-radius:999px;
     font-size:.72rem; font-weight:700; letter-spacing:.04em;
     color:var(--brand); background:rgba(20,184,166,.11);
+}
+.home-reference {
+    --home-ink: #f5f3ee;
+    --home-muted: rgba(245,243,238,.68);
+    --home-muted-strong: rgba(245,243,238,.82);
+    --home-navy: #0b1628;
+    --home-navy-mid: #132040;
+    --home-gold: #c9973a;
+    --home-gold-soft: #e8c87a;
+    --home-border: rgba(201,151,58,.18);
+    display: grid;
+    gap: 0;
+    margin: 0 -28px -28px;
+}
+.home-band {
+    padding: 88px 28px;
+    color: var(--home-ink);
+}
+.home-band:nth-of-type(odd) { background: var(--home-navy); }
+.home-band:nth-of-type(even) { background: var(--home-navy-mid); }
+.home-band a { color: inherit; text-decoration: none; }
+.home-container {
+    width: min(1160px, 100%);
+    margin: 0 auto;
+}
+.home-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--home-gold);
+}
+.home-label::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: currentColor;
+}
+.home-head {
+    margin-bottom: 52px;
+    max-width: 720px;
+}
+.home-head h2 {
+    margin: 14px 0 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    line-height: 1.08;
+    letter-spacing: -.02em;
+}
+.home-head p {
+    margin: 16px 0 0;
+    color: var(--home-muted);
+    font-size: 1rem;
+    line-height: 1.75;
+}
+.home-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    border: 1px solid var(--home-border);
+    background: var(--home-border);
+    border-radius: 22px;
+    overflow: hidden;
+}
+.home-step-card {
+    background: rgba(7, 15, 29, .34);
+    padding: 38px 30px;
+}
+.home-step-num {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 3.2rem;
+    line-height: 1;
+    color: var(--home-gold);
+    opacity: .4;
+    margin-bottom: 18px;
+}
+.home-step-card h3,
+.home-pillar-card h3,
+.home-tier-card h3,
+.home-why-card h3 {
+    margin: 0 0 10px;
+    font-size: 1rem;
+    color: var(--home-ink);
+}
+.home-step-card p,
+.home-pillar-card p,
+.home-tier-card p,
+.home-who-item,
+.home-why-item p,
+.home-cta p {
+    color: var(--home-muted);
+    line-height: 1.7;
+}
+.home-kwgi {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 22px 26px;
+    margin-bottom: 32px;
+    border: 1px solid var(--home-border);
+    border-radius: 16px;
+    background: rgba(255,255,255,.02);
+}
+.home-kwgi strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+.home-kwgi strong span { color: var(--home-gold); }
+.home-kwgi p {
+    margin: 0;
+    max-width: 520px;
+    color: var(--home-muted);
+}
+.home-pillars {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+.home-pillar-card,
+.home-tier-card,
+.home-why-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--home-border);
+    border-radius: 18px;
+    background: rgba(255,255,255,.02);
+    padding: 28px 24px;
+}
+.home-pillar-card::before {
+    content: attr(data-num);
+    position: absolute;
+    top: -8px;
+    right: 16px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 4.4rem;
+    line-height: 1;
+    color: var(--home-gold);
+    opacity: .08;
+}
+.home-pillar-icon {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    background: rgba(201,151,58,.12);
+    color: var(--home-gold);
+    font-weight: 700;
+}
+.home-tiers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 18px;
+}
+.home-tier-card.featured {
+    border-color: rgba(201,151,58,.44);
+    background: linear-gradient(160deg, rgba(201,151,58,.08) 0%, rgba(255,255,255,.02) 58%);
+}
+.home-tier-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 6px 12px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+    font-size: .68rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+.home-tier-badge.platinum { color: var(--home-gold); background: rgba(201,151,58,.15); }
+.home-tier-badge.gold { color: var(--home-gold-soft); background: rgba(201,151,58,.1); }
+.home-tier-badge.emerging { color: var(--home-ink); background: rgba(255,255,255,.08); }
+.home-tier-score {
+    color: var(--home-gold);
+    font-size: .76rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.home-who {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+}
+.home-who-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 20px;
+    border: 1px solid var(--home-border);
+    border-radius: 14px;
+    background: rgba(255,255,255,.02);
+}
+.home-who-mark {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: rgba(201,151,58,.15);
+    color: var(--home-gold);
+    flex-shrink: 0;
+    font-size: .8rem;
+}
+.home-why {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr);
+    gap: 32px;
+    align-items: start;
+}
+.home-why-list {
+    display: grid;
+    gap: 18px;
+}
+.home-why-item {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 14px;
+}
+.home-why-num {
+    color: var(--home-gold);
+    font-size: .8rem;
+    letter-spacing: .08em;
+    padding-top: 3px;
+}
+.home-why-item h4 {
+    margin: 0 0 6px;
+    color: var(--home-muted-strong);
+    font-size: .98rem;
+}
+.home-cta-card {
+    padding: 38px 34px;
+}
+.home-btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 28px;
+}
+.home-btn-primary,
+.home-btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 22px;
+    border-radius: 8px;
+    font-size: .92rem;
+    transition: transform .2s ease, opacity .2s ease, background .2s ease, border-color .2s ease;
+}
+.home-btn-primary {
+    background: var(--home-gold);
+    color: var(--home-navy) !important;
+}
+.home-btn-primary:hover,
+.home-btn-ghost:hover {
+    transform: translateY(-1px);
+}
+.home-btn-ghost {
+    border: 1px solid var(--home-border);
+    color: var(--home-ink) !important;
+    background: rgba(255,255,255,.02);
+}
+.home-partners-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.home-partners-row span {
+    white-space: nowrap;
+    font-size: .72rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--home-muted);
+}
+.home-partners-divider {
+    flex: 1;
+    min-width: 80px;
+    height: 1px;
+    background: var(--home-border);
+}
+.home-partner-logo {
+    height: 56px;
+    width: auto;
+    max-width: 150px;
+    object-fit: contain;
+    opacity: .72;
+    filter: brightness(.88) saturate(.72);
+}
+.home-cta {
+    text-align: center;
+}
+.home-cta h2 {
+    margin: 18px auto 0;
+    max-width: 760px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2.2rem, 4.8vw, 3.9rem);
+    line-height: 1.08;
+}
+.home-cta h2 em {
+    font-style: italic;
+    color: var(--home-gold-soft);
+}
+.home-cta p {
+    max-width: 620px;
+    margin: 18px auto 0;
+}
+.home-cta .home-btn-row {
+    justify-content: center;
+    margin-top: 34px;
+}
+@media (max-width: 768px) {
+    .home-reference { margin: 0 -16px -20px; }
+    .home-band { padding: 68px 16px; }
+    .home-why { grid-template-columns: 1fr; }
+    .home-head { margin-bottom: 36px; }
+    .home-kwgi { padding: 18px; }
+    .home-cta-card { padding: 28px 22px; }
+}
+@media (max-width: 520px) {
+    .home-step-card,
+    .home-pillar-card,
+    .home-tier-card,
+    .home-why-card,
+    .home-who-item { padding: 22px 18px; }
+    .home-why-item { grid-template-columns: 1fr; gap: 8px; }
+    .home-btn-row { flex-direction: column; }
+    .home-btn-primary,
+    .home-btn-ghost { width: 100%; }
+    .home-partners-row { align-items: flex-start; }
+    .home-partners-divider { display: none; }
+    .home-partner-logo { height: 44px; max-width: 120px; }
 }
 </style>
 
@@ -48,6 +387,20 @@ $aboutMission = (string) ($about['mission'] ?? '');
              style="<?= !empty($slide['image_url'])
                 ? 'background-image:url(' . e(asset_url((string) $slide['image_url'])) . ')'
                 : 'background: linear-gradient(135deg,#0c1a2e,#0f2035)'; ?>">
+            <?php
+            $slideCtaText = trim((string) ($slide['cta_text'] ?? ''));
+            $slideCtaLink = trim((string) ($slide['cta_link'] ?? ''));
+            $slideSecondaryCtaText = trim((string) ($slide['secondary_cta_text'] ?? ''));
+            $slideSecondaryCtaLink = trim((string) ($slide['secondary_cta_link'] ?? ''));
+            $slideCtaHref = $slideCtaLink !== '' && preg_match('/^https?:\/\//i', $slideCtaLink) === 1
+                ? $slideCtaLink
+                : url($slideCtaLink !== '' ? $slideCtaLink : '/nominate');
+            $slideSecondaryCtaHref = $slideSecondaryCtaLink !== '' && preg_match('/^https?:\/\//i', $slideSecondaryCtaLink) === 1
+                ? $slideSecondaryCtaLink
+                : url($slideSecondaryCtaLink !== '' ? $slideSecondaryCtaLink : '/about');
+            $slideCtaAttrs = preg_match('/^https?:\/\//i', $slideCtaHref) === 1 ? ' target="_blank" rel="noreferrer"' : '';
+            $slideSecondaryCtaAttrs = preg_match('/^https?:\/\//i', $slideSecondaryCtaHref) === 1 ? ' target="_blank" rel="noreferrer"' : '';
+            ?>
             <!-- Overlay gradient -->
             <div class="hslide-overlay"></div>
 
@@ -64,17 +417,19 @@ $aboutMission = (string) ($about['mission'] ?? '');
                     <p class="hslide-desc"><?= e((string) $slide['description']) ?></p>
                 <?php endif; ?>
                 <div class="hslide-actions">
-                    <?php if (!empty($slide['cta_text']) && !empty($slide['cta_link'])): ?>
-                        <a href="<?= e(url((string) $slide['cta_link'])) ?>" class="hslide-cta">
-                            <?= e((string) $slide['cta_text']) ?>
+                    <?php if ($slideCtaText !== ''): ?>
+                        <a href="<?= e($slideCtaHref) ?>" class="hslide-cta"<?= $slideCtaAttrs ?>>
+                            <?= e($slideCtaText) ?>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    <?php else: ?>
+                        <a href="<?= e(url('/nominate')) ?>" class="hslide-cta">
+                            Nominate Organization
                             <i class="bi bi-arrow-right"></i>
                         </a>
                     <?php endif; ?>
-                    <a href="<?= e(url('/nominate')) ?>" class="hslide-cta secondary">
-                        Nominate Organization
-                    </a>
-                    <a href="<?= e(url('/about')) ?>" class="hslide-cta ghost">
-                        About Organization
+                    <a href="<?= e($slideSecondaryCtaText !== '' ? $slideSecondaryCtaHref : url('/about')) ?>" class="hslide-cta ghost"<?= $slideSecondaryCtaText !== '' ? $slideSecondaryCtaAttrs : '' ?>>
+                        <?= e($slideSecondaryCtaText !== '' ? $slideSecondaryCtaText : 'About Organization') ?>
                     </a>
                 </div>
             </div>
@@ -388,8 +743,16 @@ $aboutMission = (string) ($about['mission'] ?? '');
         slides[current].classList.add('hslide--active');
         thumbs[current]?.classList.add('hslide-thumb--active');
 
-        // Scroll thumb into view
-        thumbs[current]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Keep the active thumbnail visible without scrolling the page back to the hero.
+        const thumbStrip = document.getElementById('hslideThumbs');
+        const activeThumb = thumbs[current];
+        if (thumbStrip && activeThumb) {
+            const targetLeft = activeThumb.offsetLeft - ((thumbStrip.clientWidth - activeThumb.clientWidth) / 2);
+            thumbStrip.scrollTo({
+                left: Math.max(0, targetLeft),
+                behavior: 'smooth'
+            });
+        }
 
         // Animate progress bar
         const fill = slides[current].querySelector('.hslide-progress-fill');
@@ -460,112 +823,202 @@ $aboutMission = (string) ($about['mission'] ?? '');
 </section>
 <?php endif; ?>
 
-<section class="grid" style="grid-template-columns: repeat(auto-fit,minmax(210px,1fr));">
-    <?php if ($heroStats): ?>
-        <?php foreach ($heroStats as $stat): ?>
-            <article class="metric-card feature-card">
-                <p class="muted"><?= e((string) ($stat['label'] ?? '')) ?></p>
-                <div class="metric-value"><?= e((string) ($stat['value'] ?? '')) ?></div>
-            </article>
-        <?php endforeach; ?>
-    <?php else: ?>
-        <article class="metric-card feature-card"><p class="muted">Assessment standards</p><div class="metric-value"><?= e((string) count($standards)) ?></div></article>
-        <article class="metric-card feature-card"><p class="muted">Featured products</p><div class="metric-value"><?= e((string) count($products)) ?></div></article>
-        <article class="metric-card feature-card"><p class="muted">Partners</p><div class="metric-value"><?= e((string) count($partners)) ?></div></article>
-        <article class="metric-card feature-card"><p class="muted">Active hero slides</p><div class="metric-value"><?= e((string) count($heroSlides)) ?></div></article>
-    <?php endif; ?>
-</section>
-
-<section class="split-grid" style="grid-template-columns: 1.35fr .95fr;">
-    <article class="card feature-card">
-        <div class="toolbar">
-            <div>
-                <h2 class="section-title">Assessment Standards</h2>
-                <p class="muted section-subtitle">Start, monitor and complete your ISO readiness process.</p>
+<div class="home-reference">
+    <section class="home-band">
+        <div class="home-container">
+            <div class="home-head">
+                <span class="home-label">The Process</span>
+                <h2>How It Works</h2>
+                <p>Three clear stages from nomination to certification, built around verified evidence, practical assessment, and trusted recognition.</p>
             </div>
-            <a class="button secondary" href="<?= e(url('/assessments/create')) ?>">Start Assessment</a>
-        </div>
-        <div class="stack section">
-            <?php foreach (array_slice($standards, 0, 6) as $standard): ?>
-                <article class="surface feature-card">
-                    <p class="muted"><?= e((string) $standard['code']) ?><?= !empty($standard['year']) ? ' · ' . e((string) $standard['year']) : '' ?></p>
-                    <h3 style="margin-bottom:6px;"><?= e((string) $standard['name']) ?></h3>
-                    <p class="muted"><?= e((string) ($standard['description'] ?? 'Readiness checks and implementation guidance.')) ?></p>
+            <div class="home-steps">
+                <article class="home-step-card">
+                    <div class="home-step-num">01</div>
+                    <h3>Nominate or Self-Enrol</h3>
+                    <p>Organizations can nominate themselves or be nominated by clients, staff, partners, or stakeholders who recognize strong compliance and leadership practices.</p>
                 </article>
-            <?php endforeach; ?>
+                <article class="home-step-card">
+                    <div class="home-step-num">02</div>
+                    <h3>Assessment and Verification</h3>
+                    <p>We review operational maturity, quality systems, and documentation against structured standards so every evaluation is transparent and measurable.</p>
+                </article>
+                <article class="home-step-card">
+                    <div class="home-step-num">03</div>
+                    <h3>Recognition and Certification</h3>
+                    <p>High-performing organizations move forward into certification, visibility, and a clearer roadmap for continuous improvement.</p>
+                </article>
+            </div>
         </div>
-    </article>
+    </section>
 
-    <article class="card feature-card">
-        <div class="pill-badge"><i class="bi bi-stars"></i> Platform Highlights</div>
-        <div class="stack section">
-            <article class="surface feature-card">
-                <h3 style="font-size:1rem;">Vision</h3>
-                <p class="muted"><?= nl2br(e($aboutVision ?: 'Deliver structured compliance transformation for organizations of all sizes.')) ?></p>
-            </article>
-            <article class="surface feature-card">
-                <h3 style="font-size:1rem;">Mission</h3>
-                <p class="muted"><?= nl2br(e($aboutMission ?: 'Unify assessment, certification, and operational workflows in one modern platform.')) ?></p>
-            </article>
-            <article class="surface feature-card">
-                <h3 style="font-size:1rem;">Take Action</h3>
-                <div class="actions">
-                    <a class="button secondary" href="<?= e(url('/about')) ?>">Read About</a>
-                    <a class="button secondary" href="<?= e(url('/nominate')) ?>">Nominate</a>
-                </div>
-            </article>
-        </div>
-    </article>
-</section>
-
-<?php if ($products): ?>
-<section class="card feature-card">
-    <div class="toolbar">
-        <div>
-            <h2 class="section-title">Featured Marketplace Picks</h2>
-            <p class="muted section-subtitle"><?= e((string) ($about['tagline'] ?? 'Digital products and service packs for your compliance roadmap.')) ?></p>
-        </div>
-        <a class="button secondary" href="<?= e(url('/products')) ?>">Open Marketplace</a>
-    </div>
-    <div class="grid section">
-        <?php foreach ($products as $product): ?>
-            <a class="card-link card feature-card" href="<?= e(url('/products/show?id=' . urlencode((string) $product['id']))) ?>">
-                <?php if (!empty($product['imageurl'])): ?>
-                    <div class="image-frame" style="min-height:200px;">
-                        <img src="<?= e(asset_url((string) $product['imageurl'])) ?>" alt="<?= e((string) $product['name']) ?>" loading="lazy" decoding="async">
-                    </div>
-                <?php endif; ?>
-                <div class="section">
-                    <p class="muted"><?= e((string) $product['sku']) ?> · <?= e((string) $product['type']) ?></p>
-                    <h3><?= e((string) $product['name']) ?></h3>
-                    <p class="muted"><?= e((string) ($product['description'] ?? 'Product details available inside.')) ?></p>
-                    <strong><?= e((string) $product['currency']) ?> <?= e(number_format((float) $product['price'], 2)) ?></strong>
-                </div>
-            </a>
-        <?php endforeach; ?>
-    </div>
-</section>
-<?php endif; ?>
-
-<section class="card feature-card">
-    <div class="toolbar">
-        <div>
-            <h2 class="section-title">Trusted Partners</h2>
-            <p class="muted section-subtitle">Organizations supporting audits, implementation and certification.</p>
-        </div>
-        <a class="button secondary" href="<?= e(url('/about')) ?>">Learn More</a>
-    </div>
-    <div class="grid section">
-        <?php foreach (array_slice($partners, 0, 8) as $partner): ?>
-            <a class="partner-logo feature-card" href="<?= e((string) ($partner['url'] ?: '#')) ?>"<?= !empty($partner['url']) ? ' target="_blank" rel="noreferrer"' : '' ?>>
-                <?php if (!empty($partner['logo_url'])): ?>
-                    <img src="<?= e(asset_url((string) $partner['logo_url'])) ?>" alt="<?= e((string) $partner['name']) ?>" loading="lazy" decoding="async">
+    <section class="home-band">
+        <div class="home-container">
+            <div class="home-head">
+                <span class="home-label">Assessment Framework</span>
+                <h2>Core Standards and Scoring Pillars</h2>
+                <p>The homepage now uses the reference structure, but the content remains grounded in your existing compliance data and platform messaging.</p>
+            </div>
+            <div class="home-kwgi">
+                <strong>Compliance Readiness <span>Index</span></strong>
+                <p><?= e($aboutTagline) ?></p>
+            </div>
+            <div class="home-pillars">
+                <?php if ($featuredStandards): ?>
+                    <?php foreach ($featuredStandards as $index => $standard): ?>
+                        <article class="home-pillar-card" data-num="<?= e(str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT)) ?>">
+                            <div class="home-pillar-icon"><?= e((string) ($standard['code'] ?: 'ISO')) ?></div>
+                            <h3><?= e((string) $standard['name']) ?></h3>
+                            <p><?= e((string) ($standard['description'] ?? 'Readiness checks and implementation guidance for structured compliance delivery.')) ?></p>
+                        </article>
+                    <?php endforeach; ?>
                 <?php else: ?>
-                    <span><?= e((string) $partner['name']) ?></span>
+                    <article class="home-pillar-card" data-num="01">
+                        <div class="home-pillar-icon">01</div>
+                        <h3>Governance and Compliance</h3>
+                        <p>Leadership accountability, policy visibility, and controlled operational procedures.</p>
+                    </article>
+                    <article class="home-pillar-card" data-num="02">
+                        <div class="home-pillar-icon">02</div>
+                        <h3>People and Workplace</h3>
+                        <p>Healthy workforce practices, training, and responsible organizational culture.</p>
+                    </article>
+                    <article class="home-pillar-card" data-num="03">
+                        <div class="home-pillar-icon">03</div>
+                        <h3>Quality Systems</h3>
+                        <p>Process consistency, audit readiness, and measurable service delivery quality.</p>
+                    </article>
+                    <article class="home-pillar-card" data-num="04">
+                        <div class="home-pillar-icon">04</div>
+                        <h3>Environmental Stewardship</h3>
+                        <p>Sustainable operations, responsible resource usage, and improvement planning.</p>
+                    </article>
+                    <article class="home-pillar-card" data-num="05">
+                        <div class="home-pillar-icon">05</div>
+                        <h3>Community Impact</h3>
+                        <p>Positive stakeholder outcomes, trust, and long-term societal contribution.</p>
+                    </article>
                 <?php endif; ?>
-            </a>
-        <?php endforeach; ?>
-    </div>
-</section>
+            </div>
+        </div>
+    </section>
+
+    <section class="home-band">
+        <div class="home-container">
+            <div class="home-head">
+                <span class="home-label">Levels of Recognition</span>
+                <h2>Your Path to Certification</h2>
+                <p>Recognition tiers create a clear progression from improvement to high-confidence certification readiness.</p>
+            </div>
+            <div class="home-tiers">
+                <article class="home-tier-card featured">
+                    <span class="home-tier-badge platinum">Platinum Award</span>
+                    <h3>Excellence Certification</h3>
+                    <p>Reserved for organizations demonstrating mature systems, strong evidence, and sustained leadership across the major evaluation areas.</p>
+                    <div class="home-tier-score">Score range: 91 - 100</div>
+                </article>
+                <article class="home-tier-card">
+                    <span class="home-tier-badge gold">Gold Standard</span>
+                    <h3>Advanced Readiness</h3>
+                    <p>For organizations with strong compliance maturity and operational discipline, but with a few targeted opportunities for refinement.</p>
+                    <div class="home-tier-score">Score range: 71 - 90</div>
+                </article>
+                <article class="home-tier-card">
+                    <span class="home-tier-badge emerging">Emerging Leader</span>
+                    <h3>Growth Track</h3>
+                    <p>For promising teams building stronger structures and using assessments as a framework for measurable improvement.</p>
+                    <div class="home-tier-score">Score range: 41 - 70</div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="home-band">
+        <div class="home-container">
+            <div class="home-head">
+                <span class="home-label">Eligibility</span>
+                <h2>Who Can Participate</h2>
+                <p>The framework is designed for a broad range of organizations and leadership profiles working toward stronger systems and visible accountability.</p>
+            </div>
+            <div class="home-who">
+                <?php foreach (['Corporates and Multinationals', 'SMEs and Startups', 'Universities and Training Institutions', 'NGOs and Community Organizations', 'Public Sector Teams', 'Individual Leaders'] as $entity): ?>
+                    <div class="home-who-item">
+                        <span class="home-who-mark"><i class="bi bi-check-lg"></i></span>
+                        <span><?= e($entity) ?></span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+
+    <section class="home-band">
+        <div class="home-container home-why">
+            <div>
+                <div class="home-head">
+                    <span class="home-label">Why It Matters</span>
+                    <h2>Certification That Opens Doors</h2>
+                    <p><?= e($aboutMission ?: 'Strong compliance systems improve trust, sharpen execution, and create a more credible position for partnerships, procurement, and growth.') ?></p>
+                </div>
+                <div class="home-why-list">
+                    <?php foreach ([
+                        ['Build trust faster', 'Verified systems give clients, investors, and regulators stronger confidence in how your organization operates.'],
+                        ['Strengthen brand reputation', 'Visible recognition helps your organization stand apart in competitive sectors and public-facing environments.'],
+                        ['Improve internal discipline', 'Assessment frameworks help teams align around measurable standards, evidence, and consistent delivery.'],
+                        ['Create growth leverage', 'Higher readiness levels support tenders, certifications, partnerships, and enterprise maturity.'],
+                    ] as $index => $benefit): ?>
+                        <article class="home-why-item">
+                            <div class="home-why-num"><?= e(str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT)) ?></div>
+                            <div>
+                                <h4><?= e($benefit[0]) ?></h4>
+                                <p><?= e($benefit[1]) ?></p>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <aside class="home-why-card home-cta-card">
+                <h3>Start with an Assessment</h3>
+                <p>Use the platform to evaluate your current readiness, identify gaps, and move toward certification with a clearer implementation path.</p>
+                <div class="home-btn-row">
+                    <a href="<?= e(url('/assessments/create')) ?>" class="home-btn-primary">Begin Assessment</a>
+                    <a href="<?= e(url('/about')) ?>" class="home-btn-ghost">Learn More</a>
+                </div>
+            </aside>
+        </div>
+    </section>
+
+    <?php if ($partners): ?>
+    <section class="home-band">
+        <div class="home-container">
+            <div class="home-partners-row">
+                <span>Trusted Partners</span>
+                <div class="home-partners-divider"></div>
+                <?php foreach (array_slice($partners, 0, 8) as $partner): ?>
+                    <?php $partnerHref = external_url((string) ($partner['url'] ?? '')); ?>
+                    <a href="<?= e($partnerHref ?: '#') ?>"<?= $partnerHref !== '' ? ' target="_blank" rel="noreferrer"' : '' ?>>
+                        <?php if (!empty($partner['logo_url'])): ?>
+                            <img class="home-partner-logo" src="<?= e(asset_url((string) $partner['logo_url'])) ?>" alt="<?= e((string) $partner['name']) ?>" loading="lazy" decoding="async">
+                        <?php else: ?>
+                            <span><?= e((string) $partner['name']) ?></span>
+                        <?php endif; ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <section class="home-band">
+        <div class="home-container home-cta">
+            <span class="home-label">Join the Movement</span>
+            <h2>Operate with clarity. Grow with discipline. Lead with <em>confidence.</em></h2>
+            <p>Nominations and assessments remain the fastest path into the platform. Start with the workflow that fits your organization today.</p>
+            <div class="home-btn-row">
+                <a href="<?= e(url('/nominate')) ?>" class="home-btn-primary">Nominate Organization</a>
+                <a href="<?= e(url('/assessments/create')) ?>" class="home-btn-ghost">Start Assessment</a>
+                <a href="<?= e(url('/about')) ?>" class="home-btn-ghost">About the Framework</a>
+            </div>
+        </div>
+    </section>
+</div>
 
 </div>

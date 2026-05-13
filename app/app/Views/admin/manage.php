@@ -50,6 +50,21 @@ if (($module['key'] ?? '') === 'site_settings' && $categoryFilter !== '') {
             font-size: .82rem;
             padding: 8px 10px;
         }
+        @media (max-width: 768px) {
+            .admin-manage-toolbar {
+                position: static;
+                padding: 10px;
+            }
+            .admin-mini-select,
+            #adminRowsFilter {
+                min-width: 0;
+                width: 100%;
+                max-width: none;
+            }
+            .admin-actions-col {
+                min-width: 140px;
+            }
+        }
     </style>
 
     <div class="toolbar">

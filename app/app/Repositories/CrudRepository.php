@@ -54,6 +54,7 @@ final class CrudRepository
     {
         $module = $this->requireModule($moduleKey);
         $payload = $this->normalizePayload($module, $input, $files);
+        $payload = $this->normalizeModulePayload($module, $payload, $id);
 
         if ($id !== null && $id !== '') {
             $payload = $this->touchUpdatedAt($module, $payload);
@@ -171,6 +172,86 @@ final class CrudRepository
         }
 
         return $payload;
+    }
+
+    private function normalizeModulePayload(array $module, array $payload, string|int|null $id = null): array
+    {
+        if (($module['key'] ?? '') === 'hero_slides') {
+            $payload = $this->normalizeHeroSlidePayload($payload, $id);
+        }
+        if (($module['key'] ?? '') === 'partners') {
+            $payload = $this->normalizePartnerPayload($payload);
+        }
+
+        return $payload;
+    }
+
+    private function normalizePartnerPayload(array $payload): array
+    {
+        if (isset($payload['url']) && is_string($payload['url'])) {
+            $partnerUrl = trim($payload['url']);
+            if (
+                $partnerUrl !== ''
+                && preg_match('/^(https?:\/\/|mailto:|tel:|#)/i', $partnerUrl) !== 1
+                && !str_starts_with($partnerUrl, '//')
+            ) {
+                $partnerUrl = 'https://' . ltrim($partnerUrl, '/');
+            }
+            $payload['url'] = $partnerUrl === '' ? null : $partnerUrl;
+        }
+
+        return $payload;
+    }
+
+    private function normalizeHeroSlidePayload(array $payload, string|int|null $id = null): array
+    {
+        $sortOrder = $payload['sort_order'] ?? null;
+        $sortOrder = is_numeric($sortOrder) ? (int) $sortOrder : 0;
+        if ($sortOrder < 1 || $this->heroSlideSortOrderExists($sortOrder, $id)) {
+            $sortOrder = $this->nextHeroSlideSortOrder();
+        }
+        $payload['sort_order'] = $sortOrder;
+
+        foreach (['cta_link', 'secondary_cta_link'] as $linkField) {
+            if (isset($payload[$linkField]) && is_string($payload[$linkField])) {
+                $ctaLink = trim($payload[$linkField]);
+                if ($ctaLink !== '' && preg_match('/^https?:\/\//i', $ctaLink) !== 1 && !str_starts_with($ctaLink, '/')) {
+                    $ctaLink = '/' . ltrim($ctaLink, '/');
+                }
+                $payload[$linkField] = $ctaLink === '' ? null : $ctaLink;
+            }
+        }
+
+        foreach (['cta_text', 'secondary_cta_text'] as $textField) {
+            if (isset($payload[$textField]) && is_string($payload[$textField])) {
+                $payload[$textField] = trim($payload[$textField]) === '' ? null : trim($payload[$textField]);
+            }
+        }
+
+        return $payload;
+    }
+
+    private function nextHeroSlideSortOrder(): int
+    {
+        return (int) (Database::query(
+            'SELECT COALESCE(MAX(sort_order), 0) + 1 FROM hero_slides'
+        )->fetchColumn() ?: 1);
+    }
+
+    private function heroSlideSortOrderExists(int $sortOrder, string|int|null $id = null): bool
+    {
+        if ($sortOrder < 1) {
+            return false;
+        }
+
+        $params = ['sort_order' => $sortOrder];
+        $sql = 'SELECT COUNT(*) FROM hero_slides WHERE sort_order = :sort_order';
+        if ($id !== null && $id !== '') {
+            $sql .= ' AND id <> :id';
+            $params['id'] = $id;
+        }
+
+        return (int) (Database::query($sql, $params)->fetchColumn() ?: 0) > 0;
     }
 
     private function getSiteSettingValue(string $key): ?string

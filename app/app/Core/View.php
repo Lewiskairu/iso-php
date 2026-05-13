@@ -13,7 +13,21 @@ final class View
             throw new \RuntimeException('View not found: ' . $view);
         }
 
-        extract($data, EXTR_SKIP);
+        $sharedData = [];
+        if (
+            !array_key_exists('siteName', $data)
+            || !array_key_exists('siteTagline', $data)
+            || !array_key_exists('logoUrl', $data)
+        ) {
+            $identity = (new \App\Repositories\ContentRepository())->siteIdentity();
+            $sharedData = [
+                'siteName' => (string) ($identity['site_name'] ?? config('app.name')),
+                'siteTagline' => (string) ($identity['tagline'] ?? ''),
+                'logoUrl' => (string) ($identity['logo'] ?? ''),
+            ];
+        }
+
+        extract(array_merge($sharedData, $data), EXTR_SKIP);
         ob_start();
         require $viewPath;
         $content = (string) ob_get_clean();

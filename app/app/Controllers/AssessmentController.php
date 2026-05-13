@@ -27,9 +27,11 @@ final class AssessmentController extends Controller
     {
         $this->requireAuth();
         $content = new ContentRepository();
+        $repository = new AssessmentRepository();
         $this->view('assessments/create', [
             'title' => 'New Assessment',
-            'standards' => (new AssessmentRepository())->getStandards(),
+            'standards' => $repository->getStandards(),
+            'defaultStandardId' => $repository->getDefaultStandardId(),
             'terms' => $content->latestTerms(),
             'error' => $this->session->consumeFlash('error'),
         ]);
@@ -42,12 +44,19 @@ final class AssessmentController extends Controller
         $title = trim((string) ($_POST['title'] ?? ''));
         $acceptedTerms = (bool) ($_POST['accept_terms'] ?? false);
         $termsId = (int) ($_POST['terms_id'] ?? 0);
+        $repository = new AssessmentRepository();
 
-        if ($standardId === '' || $title === '' || !$acceptedTerms || $termsId <= 0) {
-            $message = 'Title and standard are required, and you must accept the current terms before starting.';
+        if ($standardId === '') {
+            $standardId = (string) ($repository->getDefaultStandardId() ?? '');
+        }
+        if ($title === '' && $standardId !== '') {
+            $title = $this->buildAssessmentTitle($repository, $standardId);
+        }
+
+        if ($standardId === '' || !$acceptedTerms || $termsId <= 0) {
+            $message = 'A standard is required, and you must accept the current terms before starting.';
             $this->flashFormState(
                 [
-                    'title' => $title === '' ? 'Assessment title is required.' : null,
                     'iso_standard_id' => $standardId === '' ? 'Please select an ISO standard.' : null,
                     'accept_terms' => !$acceptedTerms ? 'You must accept the current terms and conditions.' : null,
                 ],
@@ -62,7 +71,6 @@ final class AssessmentController extends Controller
         }
 
         $id = bin2hex(random_bytes(16));
-        $repository = new AssessmentRepository();
         $repository->createAssessment($id, $user['id'], $standardId, $title);
         $repository->acceptTerms(
             $user['id'],
@@ -71,6 +79,20 @@ final class AssessmentController extends Controller
             $_SERVER['HTTP_USER_AGENT'] ?? null
         );
         redirect('/assessments/show?id=' . urlencode($id));
+    }
+
+    private function buildAssessmentTitle(AssessmentRepository $repository, string $standardId): string
+    {
+        $standard = $repository->findStandardById($standardId);
+        if (!$standard) {
+            return 'Assessment - ' . date('Y-m-d H:i');
+        }
+
+        $code = trim((string) ($standard['code'] ?? ''));
+        $name = trim((string) ($standard['name'] ?? ''));
+        $base = trim($code . ($name !== '' ? ' ' . $name : ''));
+
+        return trim($base !== '' ? $base : 'Assessment') . ' - ' . date('Y-m-d H:i');
     }
 
     public function show(): void

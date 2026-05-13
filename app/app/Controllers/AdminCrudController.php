@@ -65,14 +65,31 @@ final class AdminCrudController extends Controller
         }
 
         $productDefaults = [];
+        $moduleDefaults = [
+            'key' => (string) ($_GET['key'] ?? ''),
+            'category' => (string) ($_GET['category'] ?? ''),
+            'type' => (string) ($_GET['type'] ?? ''),
+            'label' => (string) ($_GET['label'] ?? ''),
+        ];
         if ($moduleKey === 'products' && !$id) {
             $currency = (string) (Database::query(
-                "SELECT value FROM site_settings WHERE key IN ('currency', 'currency_code') ORDER BY CASE WHEN key = 'currency' THEN 0 ELSE 1 END LIMIT 1"
+                'SELECT "value"
+                 FROM "site_settings"
+                 WHERE "key" IN (\'currency\', \'currency_code\')
+                 ORDER BY CASE WHEN "key" = \'currency\' THEN 0 ELSE 1 END
+                 LIMIT 1'
             )->fetchColumn() ?: 'USD');
             $productDefaults = [
                 'currency' => strtoupper($currency),
                 'sku' => 'PRD-' . date('ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)),
             ];
+        }
+        if ($moduleKey === 'hero_slides' && !$id) {
+            $nextSortOrder = (int) (Database::query(
+                'SELECT COALESCE(MAX(sort_order), 0) + 1 FROM hero_slides'
+            )->fetchColumn() ?: 1);
+            $moduleDefaults['sort_order'] = (string) max(1, $nextSortOrder);
+            $moduleDefaults['active'] = '1';
         }
 
         $this->view('admin/form', [
@@ -80,12 +97,7 @@ final class AdminCrudController extends Controller
             'module' => $module,
             'record' => $id ? $repository->find($moduleKey, (string) $id) : null,
             'productDefaults' => $productDefaults,
-            'defaults' => [
-                'key' => (string) ($_GET['key'] ?? ''),
-                'category' => (string) ($_GET['category'] ?? ''),
-                'type' => (string) ($_GET['type'] ?? ''),
-                'label' => (string) ($_GET['label'] ?? ''),
-            ],
+            'defaults' => $moduleDefaults,
         ]);
     }
 
