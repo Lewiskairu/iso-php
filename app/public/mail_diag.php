@@ -1,68 +1,81 @@
 <?php
-// Email diagnostics — DELETE THIS FILE after debugging!
+// SMTP Step-by-step diagnostic — DELETE AFTER DEBUGGING
 header('Content-Type: text/plain');
+echo "=== SMTP CONVERSATION TEST ===\n\n";
 
-echo "=== EMAIL DIAGNOSTICS ===\n\n";
+$host    = '127.0.0.1';
+$port    = 25;
+$timeout = 10;
+$from    = 'info@konigsweg.com';
+$to      = 'lewis@gmail.com';
 
-// 1. PHP mail() function
-echo "1. mail() function available: " . (function_exists('mail') ? "YES" : "NO") . "\n";
-
-// 2. popen available
-echo "2. popen() available: " . (function_exists('popen') ? "YES" : "NO") . "\n";
-
-// 3. fsockopen available
-echo "3. fsockopen() available: " . (function_exists('fsockopen') ? "YES" : "NO") . "\n";
-
-// 4. sendmail binary
-$paths = ['/usr/sbin/sendmail', '/usr/lib/sendmail', '/usr/bin/sendmail'];
-foreach ($paths as $p) {
-    echo "4. {$p} exists: " . (file_exists($p) ? "YES" : "NO") . 
-         " | executable: " . (is_executable($p) ? "YES" : "NO") . "\n";
+echo "Connecting to {$host}:{$port}...\n";
+$sock = @fsockopen($host, $port, $errno, $errstr, $timeout);
+if (!$sock) {
+    die("FAILED: {$errstr} ({$errno})\n");
 }
+stream_set_timeout($sock, $timeout);
+echo "Connected OK\n\n";
 
-// 5. disabled functions
-echo "\n5. Disabled functions: " . (ini_get('disable_functions') ?: 'none') . "\n";
-
-// 6. sendmail_path
-echo "6. sendmail_path: " . (ini_get('sendmail_path') ?: 'not set') . "\n";
-
-// 7. SMTP port test
-echo "\n=== SMTP PORT TESTS ===\n";
-foreach ([25, 587, 465] as $port) {
-    $conn = @fsockopen('127.0.0.1', $port, $errno, $errstr, 3);
-    if ($conn) {
-        fclose($conn);
-        echo "Port {$port}: OPEN\n";
-    } else {
-        echo "Port {$port}: CLOSED ({$errstr})\n";
+function smtp_read($sock) {
+    $response = '';
+    while (!feof($sock)) {
+        $line = fgets($sock, 512);
+        if ($line === false) break;
+        echo "  << " . rtrim($line) . "\n";
+        $response .= $line;
+        if (strlen($line) >= 4 && $line[3] === ' ') break;
     }
+    return trim($response);
 }
 
-// 8. Try actually sending with mail() if available
-if (function_exists('mail')) {
-    echo "\n=== TEST SEND VIA mail() ===\n";
-    $to      = 'lewis@gmail.com'; // change to your real email
-    $subject = 'MailService Diagnostic Test';
-    $headers = "From: info@konigsweg.com\r\nContent-Type: text/plain";
-    $result  = mail($to, $subject, 'This is a diagnostic test email.', $headers);
-    echo "mail() send result: " . ($result ? "SUCCESS" : "FAILED") . "\n";
+function smtp_write($sock, $cmd) {
+    echo "  >> {$cmd}\n";
+    fwrite($sock, $cmd . "\r\n");
 }
 
-// 9. Try sendmail popen
-if (function_exists('popen')) {
-    echo "\n=== TEST SEND VIA popen/sendmail ===\n";
-    $sendmailPath = '/usr/sbin/sendmail';
-    if (is_executable($sendmailPath)) {
-        $handle = popen($sendmailPath . ' -t -i -f info@konigsweg.com', 'w');
-        if ($handle) {
-            fwrite($handle, "To: lewis@gmail.com\r\nFrom: info@konigsweg.com\r\nSubject: Sendmail Test\r\n\r\nTest via popen.\r\n");
-            $code = pclose($handle);
-            echo "popen sendmail exit code: {$code} (" . ($code === 0 ? "SUCCESS" : "FAILED") . ")\n";
-        } else {
-            echo "popen() returned false\n";
-        }
-    } else {
-        echo "sendmail not executable at {$sendmailPath}\n";
-    }
-}
+// Step 1: Greeting
+echo "[1] GREETING:\n";
+smtp_read($sock);
+
+// Step 2: EHLO
+echo "\n[2] EHLO:\n";
+smtp_write($sock, 'EHLO konigsweg.com');
+smtp_read($sock);
+
+// Step 3: MAIL FROM
+echo "\n[3] MAIL FROM:\n";
+smtp_write($sock, "MAIL FROM:<{$from}>");
+smtp_read($sock);
+
+// Step 4: RCPT TO
+echo "\n[4] RCPT TO:\n";
+smtp_write($sock, "RCPT TO:<{$to}>");
+smtp_read($sock);
+
+// Step 5: DATA
+echo "\n[5] DATA:\n";
+smtp_write($sock, 'DATA');
+smtp_read($sock);
+
+// Step 6: Send message
+echo "\n[6] SENDING MESSAGE:\n";
+$msg = "Date: " . date('r') . "\r\n"
+     . "From: Konigsweg <{$from}>\r\n"
+     . "To: {$to}\r\n"
+     . "Subject: SMTP Diagnostic Test\r\n"
+     . "MIME-Version: 1.0\r\n"
+     . "Content-Type: text/plain; charset=UTF-8\r\n"
+     . "\r\n"
+     . "This is a diagnostic test email from konigsweg.com SMTP.\r\n";
+echo "  >> [message body + terminator]\n";
+fwrite($sock, $msg . "\r\n.\r\n");
+smtp_read($sock);
+
+// Step 7: QUIT
+echo "\n[7] QUIT:\n";
+smtp_write($sock, 'QUIT');
+smtp_read($sock);
+
+fclose($sock);
 echo "\n=== DONE ===\n";
