@@ -27,10 +27,10 @@ final class TokenService
             'e' => time() + $expiresInSeconds,
         ];
         $json = json_encode($data);
-        $encoded = base64_encode($json);
+        $encoded = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($json));
         $signature = hash_hmac('sha256', $encoded, $this->secret);
 
-        return str_replace(['+', '/', '='], ['-', '_', ''], $encoded . '.' . $signature);
+        return $encoded . '.' . $signature;
     }
 
     /**
@@ -44,13 +44,21 @@ final class TokenService
         }
 
         [$encoded, $signature] = $parts;
+        
+        // Re-calculate signature on the encoded string as it came from the URL
         $expectedSignature = hash_hmac('sha256', $encoded, $this->secret);
 
         if (!hash_equals($expectedSignature, $signature)) {
             return null;
         }
 
-        $json = base64_decode(str_replace(['-', '_'], ['+', '/'], $encoded));
+        // Now decode the base64url back to json
+        $remainder = strlen($encoded) % 4;
+        $base64 = str_replace(['-', '_'], ['+', '/'], $encoded);
+        if ($remainder) {
+            $base64 .= str_repeat('=', 4 - $remainder);
+        }
+        $json = base64_decode($base64);
         $data = json_decode($json, true);
 
         if (!$data || !isset($data['p'], $data['e'])) {
