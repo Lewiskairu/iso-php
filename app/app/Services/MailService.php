@@ -33,7 +33,8 @@ final class MailService
     }
 
     /**
-     * Send an email using a direct SMTP socket connection.
+     * Send an email using the sendmail binary (most reliable on cPanel).
+     * Falls back to socket SMTP if sendmail is not available.
      */
     public function send(string $to, string $subject, string $body): bool
     {
@@ -43,12 +44,71 @@ final class MailService
         }
 
         try {
-            return $this->smtpSend($to, $subject, $body);
+            // Try sendmail binary first (works on virtually all cPanel servers)
+            if ($this->sendViaSendmail($to, $subject, $body)) {
+                return true;
+            }
+            // Fallback: try SMTP socket on port 587 then 25
+            foreach ([587, 25] as $port) {
+                $this->smtpPort = $port;
+                if ($this->smtpSend($to, $subject, $body)) {
+                    return true;
+                }
+            }
+            return false;
         } catch (\Throwable $e) {
-            // Log silently — never crash the app because of email
-            error_log('[MailService] SMTP error: ' . $e->getMessage());
+            error_log('[MailService] Send error: ' . $e->getMessage());
             return false;
         }
+    }
+
+    private function sendViaSendmail(string $to, string $subject, string $body): bool
+    {
+        $sendmailPaths = [
+            '/usr/sbin/sendmail',
+            '/usr/lib/sendmail',
+            '/usr/bin/sendmail',
+        ];
+
+        $sendmail = null;
+        foreach ($sendmailPaths as $path) {
+            if (is_executable($path)) {
+                $sendmail = $path;
+                break;
+            }
+        }
+
+        if ($sendmail === null) {
+            return false;
+        }
+
+        $hostname = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $date     = date('r');
+        $msgId    = '<' . bin2hex(random_bytes(8)) . '@' . $hostname . '>';
+
+        $message  = implode("\r\n", [
+            "Date: {$date}",
+            "From: {$this->fromName} <{$this->fromEmail}>",
+            "To: {$to}",
+            "Subject: {$subject}",
+            "Message-ID: {$msgId}",
+            "MIME-Version: 1.0",
+            "Content-Type: text/html; charset=UTF-8",
+            "Content-Transfer-Encoding: 7bit",
+            "",
+            $body,
+        ]);
+
+        // -t = read recipients from headers, -i = don't treat . as end
+        $handle = popen($sendmail . ' -t -i -f ' . escapeshellarg($this->fromEmail), 'w');
+        if ($handle === false) {
+            return false;
+        }
+
+        fwrite($handle, $message);
+        $status = pclose($handle);
+
+        return $status === 0;
     }
 
     // ─── Email Builders ────────────────────────────────────────────────────────
