@@ -7,111 +7,46 @@ namespace App\Services;
 use App\Core\Database;
 
 /**
- * Service for sending transactional emails via direct SMTP (socket-based).
- * Uses cPanel's local SMTP server — no external libraries required.
+ * Sends email via direct SMTP socket (fsockopen).
+ * Compatible with cPanel where mail()/popen() are disabled.
  */
 final class MailService
 {
     private string $fromEmail;
     private string $fromName;
-
-    // SMTP settings — cPanel local relay (no auth needed for same-server sending)
     private string $smtpHost = '127.0.0.1';
     private int    $smtpPort = 25;
-    private int    $smtpTimeout = 10;
+    private int    $timeout  = 15;
 
     public function __construct()
     {
         $this->fromEmail = (string) $this->getSetting('smtp_user', 'no-reply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost'));
         $this->fromName  = (string) $this->getSetting('company_name', 'ISO Compliance Hub');
-
-        // Allow override via DB settings
-        $host = (string) $this->getSetting('smtp_host', '');
-        $port = (int)   $this->getSetting('smtp_port', '0');
-        if ($host !== '') $this->smtpHost = $host;
-        if ($port > 0)    $this->smtpPort = $port;
     }
 
-    /**
-     * Send an email using the sendmail binary (most reliable on cPanel).
-     * Falls back to socket SMTP if sendmail is not available.
-     */
+    // ─── Public send API ───────────────────────────────────────────────────────
+
     public function send(string $to, string $subject, string $body): bool
     {
-        // Wrap plain content in HTML template
         if (stripos($body, '<html') === false) {
             $body = $this->wrapHtml($subject, $body);
         }
 
-        try {
-            // Try sendmail binary first (works on virtually all cPanel servers)
-            if ($this->sendViaSendmail($to, $subject, $body)) {
-                return true;
-            }
-            // Fallback: try SMTP socket on port 587 then 25
-            foreach ([587, 25] as $port) {
-                $this->smtpPort = $port;
+        // Try each port: 25 (local relay), 587, 465
+        foreach ([25, 587] as $port) {
+            $this->smtpPort = $port;
+            try {
                 if ($this->smtpSend($to, $subject, $body)) {
                     return true;
                 }
-            }
-            return false;
-        } catch (\Throwable $e) {
-            error_log('[MailService] Send error: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    private function sendViaSendmail(string $to, string $subject, string $body): bool
-    {
-        $sendmailPaths = [
-            '/usr/sbin/sendmail',
-            '/usr/lib/sendmail',
-            '/usr/bin/sendmail',
-        ];
-
-        $sendmail = null;
-        foreach ($sendmailPaths as $path) {
-            if (is_executable($path)) {
-                $sendmail = $path;
-                break;
+            } catch (\Throwable $e) {
+                error_log("[MailService] Port {$port} failed: " . $e->getMessage());
             }
         }
 
-        if ($sendmail === null) {
-            return false;
-        }
-
-        $hostname = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $date     = date('r');
-        $msgId    = '<' . bin2hex(random_bytes(8)) . '@' . $hostname . '>';
-
-        $message  = implode("\r\n", [
-            "Date: {$date}",
-            "From: {$this->fromName} <{$this->fromEmail}>",
-            "To: {$to}",
-            "Subject: {$subject}",
-            "Message-ID: {$msgId}",
-            "MIME-Version: 1.0",
-            "Content-Type: text/html; charset=UTF-8",
-            "Content-Transfer-Encoding: 7bit",
-            "",
-            $body,
-        ]);
-
-        // -t = read recipients from headers, -i = don't treat . as end
-        $handle = popen($sendmail . ' -t -i -f ' . escapeshellarg($this->fromEmail), 'w');
-        if ($handle === false) {
-            return false;
-        }
-
-        fwrite($handle, $message);
-        $status = pclose($handle);
-
-        return $status === 0;
+        error_log("[MailService] All delivery methods failed for: {$to}");
+        return false;
     }
-
-    // ─── Email Builders ────────────────────────────────────────────────────────
 
     public function sendWelcome(string $to, string $name, string $verificationLink): bool
     {
@@ -119,11 +54,11 @@ final class MailService
         $body = "
         <p>Hello <strong>{$name}</strong>,</p>
         <p>Thank you for signing up for {$this->fromName}. We're excited to have you on board!</p>
-        <p>Please click the button below to verify your email address and activate your account:</p>
-        <p style='margin: 30px 0;'>
+        <p>Please click the button below to verify your email address:</p>
+        <p style='margin:30px 0;'>
             <a href='{$verificationLink}' style='background:#14b8a6;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;'>Verify My Account</a>
         </p>
-        <p style='font-size:13px;color:#666;'>Or copy and paste this link: {$verificationLink}</p>";
+        <p style='font-size:13px;color:#666;'>Or copy this link: {$verificationLink}</p>";
         return $this->send($to, $subject, $body);
     }
 
@@ -132,11 +67,11 @@ final class MailService
         $subject = "Reset your password – {$this->fromName}";
         $body = "
         <p>Hello,</p>
-        <p>We received a request to reset your password for your {$this->fromName} account.</p>
-        <p style='margin: 30px 0;'>
+        <p>We received a request to reset your {$this->fromName} account password.</p>
+        <p style='margin:30px 0;'>
             <a href='{$resetLink}' style='background:#f97316;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;'>Reset Password</a>
         </p>
-        <p>If you didn't request this, you can safely ignore this email. The link expires in 1 hour.</p>";
+        <p>If you didn't request this, ignore this email. The link expires in 1 hour.</p>";
         return $this->send($to, $subject, $body);
     }
 
@@ -144,11 +79,11 @@ final class MailService
     {
         $subject = "Organization Nomination: {$nominee}";
         if ($recipientType === 'organization') {
-            $body = "<p>New nomination alert!</p><p><strong>{$nominator}</strong> has nominated <strong>{$nominee}</strong> for the <strong>{$type}</strong> category.</p>";
+            $body = "<p><strong>{$nominator}</strong> nominated <strong>{$nominee}</strong> for <strong>{$type}</strong>.</p>";
         } elseif ($recipientType === 'nominee') {
-            $body = "<p>Congratulations! <strong>{$nominee}</strong> has been nominated for <strong>{$type}</strong> by <strong>{$nominator}</strong>.</p>";
+            $body = "<p>Congratulations! <strong>{$nominee}</strong> was nominated for <strong>{$type}</strong> by <strong>{$nominator}</strong>.</p>";
         } else {
-            $body = "<p>Your nomination of <strong>{$nominee}</strong> for <strong>{$type}</strong> has been submitted successfully.</p>";
+            $body = "<p>Your nomination of <strong>{$nominee}</strong> for <strong>{$type}</strong> was submitted successfully.</p>";
         }
         return $this->send($to, $subject, $body);
     }
@@ -158,80 +93,127 @@ final class MailService
         $subject = "Order Confirmed #{$orderId} – {$this->fromName}";
         $body = "
         <p>Thank you for your order!</p>
-        <p>We've received your payment and are processing order <strong>#{$orderId}</strong>.</p>
-        <p><strong>Total Paid:</strong> {$currency} {$total}</p>
-        <p><a href='" . url('/orders/track?id=' . $orderId) . "' style='color:#14b8a6;'>Track your order</a></p>";
+        <p>Order <strong>#{$orderId}</strong> has been received.</p>
+        <p><strong>Total Paid:</strong> {$currency} {$total}</p>";
         return $this->send($to, $subject, $body);
     }
 
-    // ─── Core SMTP ─────────────────────────────────────────────────────────────
+    // ─── Core SMTP via fsockopen ────────────────────────────────────────────────
 
     private function smtpSend(string $to, string $subject, string $body): bool
     {
-        $socket = @fsockopen($this->smtpHost, $this->smtpPort, $errno, $errstr, $this->smtpTimeout);
-
+        $socket = @fsockopen($this->smtpHost, $this->smtpPort, $errno, $errstr, $this->timeout);
         if ($socket === false) {
-            throw new \RuntimeException("Cannot connect to SMTP {$this->smtpHost}:{$this->smtpPort} — {$errstr} ({$errno})");
+            error_log("[MailService] fsockopen failed on port {$this->smtpPort}: {$errstr} ({$errno})");
+            return false;
+        }
+        stream_set_timeout($socket, $this->timeout);
+
+        // Read greeting
+        $resp = $this->read($socket);
+        if (!$this->isOk($resp, '220')) {
+            error_log("[MailService] Bad greeting: {$resp}");
+            fclose($socket);
+            return false;
         }
 
-        stream_set_timeout($socket, $this->smtpTimeout);
+        // EHLO
+        $hostname = $_SERVER['HTTP_HOST'] ?? 'konigsweg.com';
+        $this->write($socket, "EHLO {$hostname}");
+        $resp = $this->read($socket);
+        if (!$this->isOk($resp, '250')) {
+            // Try HELO fallback
+            $this->write($socket, "HELO {$hostname}");
+            $resp = $this->read($socket);
+        }
 
-        $this->smtpRead($socket); // 220 greeting
+        // MAIL FROM
+        $this->write($socket, "MAIL FROM:<{$this->fromEmail}>");
+        $resp = $this->read($socket);
+        if (!$this->isOk($resp, '250')) {
+            error_log("[MailService] MAIL FROM rejected: {$resp}");
+            fclose($socket);
+            return false;
+        }
 
-        $hostname = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $this->smtpWrite($socket, "EHLO {$hostname}");
-        $this->smtpRead($socket);
-
-        $this->smtpWrite($socket, "MAIL FROM:<{$this->fromEmail}>");
-        $this->smtpRead($socket);
-
-        // Support comma-separated multiple recipients
+        // RCPT TO (support multiple comma-separated)
         foreach (array_map('trim', explode(',', $to)) as $recipient) {
-            $this->smtpWrite($socket, "RCPT TO:<{$recipient}>");
-            $this->smtpRead($socket);
+            $this->write($socket, "RCPT TO:<{$recipient}>");
+            $resp = $this->read($socket);
+            if (!$this->isOk($resp, '250') && !$this->isOk($resp, '251')) {
+                error_log("[MailService] RCPT TO rejected for {$recipient}: {$resp}");
+                fclose($socket);
+                return false;
+            }
         }
 
-        $this->smtpWrite($socket, 'DATA');
-        $this->smtpRead($socket);
+        // DATA
+        $this->write($socket, 'DATA');
+        $resp = $this->read($socket);
+        if (!$this->isOk($resp, '354')) {
+            error_log("[MailService] DATA command rejected: {$resp}");
+            fclose($socket);
+            return false;
+        }
 
-        $date    = date('r');
-        $msgId   = '<' . bin2hex(random_bytes(8)) . '@' . $hostname . '>';
-        $headers = implode("\r\n", [
+        // Build message — use CRLF throughout
+        $hostname = $_SERVER['HTTP_HOST'] ?? 'konigsweg.com';
+        $msgId    = '<' . bin2hex(random_bytes(8)) . '@' . $hostname . '>';
+        $date     = date('r');
+
+        // Dot-stuff: any line starting with "." must be doubled
+        $safebody  = preg_replace('/^\./', '..', $body);
+
+        $message = implode("\r\n", [
             "Date: {$date}",
-            "From: {$this->fromName} <{$this->fromEmail}>",
+            "From: =?UTF-8?B?" . base64_encode($this->fromName) . "?= <{$this->fromEmail}>",
             "To: {$to}",
-            "Subject: {$subject}",
+            "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=",
             "Message-ID: {$msgId}",
             "MIME-Version: 1.0",
             "Content-Type: text/html; charset=UTF-8",
-            "Content-Transfer-Encoding: 7bit",
-            "X-Mailer: PHP-MailService/1.0",
+            "Content-Transfer-Encoding: base64",
+            "",
+            chunk_split(base64_encode($body), 76, "\r\n"),
         ]);
 
-        $this->smtpWrite($socket, $headers . "\r\n\r\n" . $body . "\r\n.");
-        $response = $this->smtpRead($socket);
+        // Send message body followed by terminator on its own line
+        fwrite($socket, $message . "\r\n.\r\n");
 
-        $this->smtpWrite($socket, 'QUIT');
+        $resp = $this->read($socket);
+        $success = $this->isOk($resp, '250');
+        if (!$success) {
+            error_log("[MailService] Message rejected after DATA: {$resp}");
+        }
+
+        $this->write($socket, 'QUIT');
+        $this->read($socket);
         fclose($socket);
 
-        // 250 = success
-        return strpos($response, '250') === 0;
+        return $success;
     }
 
-    private function smtpWrite($socket, string $data): void
+    private function write($socket, string $cmd): void
     {
-        fwrite($socket, $data . "\r\n");
+        fwrite($socket, $cmd . "\r\n");
     }
 
-    private function smtpRead($socket): string
+    private function read($socket): string
     {
         $response = '';
-        while ($line = fgets($socket, 512)) {
+        while (!feof($socket)) {
+            $line = fgets($socket, 512);
+            if ($line === false) break;
             $response .= $line;
-            // Lines ending without a dash mean the response is complete
-            if (isset($line[3]) && $line[3] === ' ') break;
+            // Line with space at position 3 = last line of response
+            if (strlen($line) >= 4 && $line[3] === ' ') break;
         }
-        return $response;
+        return trim($response);
+    }
+
+    private function isOk(string $response, string $code): bool
+    {
+        return strpos($response, $code) === 0;
     }
 
     // ─── HTML Template ─────────────────────────────────────────────────────────
@@ -239,24 +221,16 @@ final class MailService
     private function wrapHtml(string $subject, string $body): string
     {
         $year = date('Y');
-        return <<<HTML
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>{$subject}</title></head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#1e293b;background:#f8fafc;margin:0;padding:40px;">
-  <div style="max-width:600px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;padding:40px;border-radius:20px;">
-    <div style="text-align:center;margin-bottom:30px;padding-bottom:20px;border-bottom:1px solid #e2e8f0;">
-      <h1 style="color:#14b8a6;margin:0;font-size:22px;font-weight:800;">{$this->fromName}</h1>
-    </div>
-    <div>{$body}</div>
-    <div style="margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;text-align:center;">
-      <p>© {$year} {$this->fromName}. All rights reserved.</p>
-      <p>This is an automated message — please do not reply directly.</p>
-    </div>
-  </div>
-</body>
-</html>
-HTML;
+        $name = htmlspecialchars($this->fromName, ENT_QUOTES, 'UTF-8');
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>{$subject}</title></head>"
+            . "<body style='font-family:Arial,sans-serif;line-height:1.6;color:#1e293b;background:#f8fafc;margin:0;padding:40px;'>"
+            . "<div style='max-width:600px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;padding:40px;border-radius:16px;'>"
+            . "<div style='text-align:center;margin-bottom:30px;padding-bottom:20px;border-bottom:1px solid #e2e8f0;'>"
+            . "<h1 style='color:#14b8a6;margin:0;font-size:22px;'>{$name}</h1></div>"
+            . "<div>{$body}</div>"
+            . "<div style='margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;text-align:center;'>"
+            . "<p>&copy; {$year} {$name}. All rights reserved.</p></div>"
+            . "</div></body></html>";
     }
 
     // ─── DB Helper ─────────────────────────────────────────────────────────────
