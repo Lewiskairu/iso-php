@@ -36,7 +36,19 @@ $effectivePrice = !empty($product['specialactive']) && !empty($product['specialp
         <div class="grid section">
             <article class="metric-card">
                 <p class="muted">Price</p>
-                <div class="metric-value"><?= e((string) $product['currency']) ?> <?= e(number_format($effectivePrice, 2)) ?></div>
+                <div class="stack" style="gap:4px;">
+                    <?php if (!empty($product['specialactive']) && !empty($product['previousprice'])): ?>
+                        <div style="font-size:0.85rem; color:var(--accent); text-decoration:line-through; opacity:0.7;">
+                            <?= e((string) $product['currency']) ?> <?= e(number_format((float) $product['previousprice'], 2)) ?>
+                        </div>
+                    <?php endif; ?>
+                    <div class="metric-value" style="color:var(--brand);"><?= e((string) $product['currency']) ?> <?= e(number_format($effectivePrice, 2)) ?></div>
+                    <?php if (!empty($product['specialactive']) && !empty($product['specialevent'])): ?>
+                        <div class="badge-custom accent" style="font-size:0.7rem; width:fit-content; margin-top:4px;">
+                            <i class="bi bi-tag-fill"></i> <?= e((string) $product['specialevent']) ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </article>
             <article class="metric-card">
                 <p class="muted">Stock</p>

@@ -8,8 +8,11 @@ use App\Repositories\UserRepository;
 
 final class AuthService
 {
-    public function __construct(private UserRepository $users = new UserRepository())
+    private UserRepository $users;
+
+    public function __construct(?UserRepository $users = null)
     {
+        $this->users = $users ?? new UserRepository();
     }
 
     public function attempt(string $email, string $password): ?array

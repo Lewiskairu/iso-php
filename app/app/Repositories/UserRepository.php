@@ -11,7 +11,7 @@ final class UserRepository
     public function findByEmail(string $email): ?array
     {
         $user = Database::query(
-            'SELECT id, email, password, name, role FROM users WHERE email = :email LIMIT 1',
+            'SELECT id, email, password, name, role, is_verified FROM users WHERE email = :email LIMIT 1',
             ['email' => $email]
         )->fetch();
 
@@ -21,7 +21,7 @@ final class UserRepository
     public function findById(string $id): ?array
     {
         $user = Database::query(
-            'SELECT id, email, name, image, role, "createdAt", "updatedAt" FROM users WHERE id = :id LIMIT 1',
+            'SELECT id, email, name, image, role, is_verified, "createdAt", "updatedAt" FROM users WHERE id = :id LIMIT 1',
             ['id' => $id]
         )->fetch();
 
@@ -58,5 +58,18 @@ final class UserRepository
 
         $sql .= ' WHERE id = :id';
         Database::query($sql, $params);
+    }
+
+    public function verifyEmail(string $id): void
+    {
+        Database::query('UPDATE users SET is_verified = 1 WHERE id = :id', ['id' => $id]);
+    }
+
+    public function updatePassword(string $id, string $passwordHash): void
+    {
+        Database::query('UPDATE users SET password = :password, "updatedAt" = NOW() WHERE id = :id', [
+            'id' => $id,
+            'password' => $passwordHash,
+        ]);
     }
 }

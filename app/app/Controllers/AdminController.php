@@ -137,7 +137,7 @@ final class AdminController extends Controller
         }
 
         if ($categoryFilter === 'appearance_theme') {
-            return str_starts_with($rowKey, 'theme_')
+            return strpos($rowKey, 'theme_') === 0
                 || in_array($rowKey, ['default_theme_mode', 'font_family', 'border_radius', 'button_style'], true);
         }
 

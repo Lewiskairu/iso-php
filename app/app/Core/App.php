@@ -19,7 +19,7 @@ final class App
         $uri = $_SERVER['REQUEST_URI'] ?? '/';
         $baseDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
         
-        if ($baseDir !== '/' && $baseDir !== '' && str_starts_with(explode('?', $uri)[0], $baseDir)) {
+        if ($baseDir !== '/' && $baseDir !== '' && strpos(explode('?', $uri)[0], $baseDir) === 0) {
             $uri = substr($uri, strlen($baseDir));
         }
         

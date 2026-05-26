@@ -175,8 +175,13 @@
                 <?php elseif ($type === 'select'): ?>
                     <select id="<?= e((string) $field) ?>" name="<?= e((string) $field) ?>">
                         <option value="">Select</option>
-                        <?php foreach (($meta['options'] ?? []) as $option): ?>
-                            <option value="<?= e((string) $option) ?>" <?= (string) $value === (string) $option ? 'selected' : '' ?>><?= e((string) $option) ?></option>
+                        <?php foreach (($meta['options'] ?? []) as $optValue => $optLabel): ?>
+                            <?php 
+                            // Handle both indexed and associative arrays
+                            $actualValue = is_int($optValue) ? $optLabel : $optValue;
+                            $actualLabel = $optLabel;
+                            ?>
+                            <option value="<?= e((string) $actualValue) ?>" <?= (string) $value === (string) $actualValue ? 'selected' : '' ?>><?= e((string) $actualLabel) ?></option>
                         <?php endforeach; ?>
                     </select>
                 <?php elseif ($type === 'boolean'): ?>

@@ -17,7 +17,7 @@ $contacts       = array_values($footer['contacts']);
 $partners       = $footer['partners'];
 $hasAdmin       = $authUser && (($authUser['role'] ?? '') === 'ADMIN');
 $cartCount      = (int) array_sum($_SESSION['cart'] ?? []);
-$isAdminPath    = str_starts_with($currentPath, '/admin');
+$isAdminPath    = strpos($currentPath, '/admin') === 0;
 $showAdminFirst = $hasAdmin && $isAdminPath;
 $adminModuleIcons = [
     'standards' => 'bi-clipboard2-check',
@@ -63,7 +63,7 @@ $navItems = [
 
 function isNavActive(string $currentPath, string $navPath, string $match): bool {
     if ($match === 'exact') return $currentPath === $navPath;
-    return str_starts_with($currentPath, $navPath);
+    return strpos($currentPath, $navPath) === 0;
 }
 ?>
 <!DOCTYPE html>
@@ -88,29 +88,38 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
     <style>
         /* ── Base ── */
         :root {
-            --sidebar-w: 260px;
-            --sidebar-bg: #0c1a2e;
-            --sidebar-border: rgba(255,255,255,.07);
+            --sidebar-w: 280px;
+            --sidebar-bg: #0f172a;
+            --sidebar-border: rgba(255, 255, 255, 0.08);
             --sidebar-text: #94a3b8;
             --sidebar-text-active: #ffffff;
-            --sidebar-item-active: rgba(20,184,166,.18);
-            --sidebar-item-active-border: #14b8a6;
             --brand: #14b8a6;
             --brand-dark: #0d9488;
             --accent: #f97316;
-            --topbar-h: 64px;
+            --topbar-h: 72px;
+            --surface: #ffffff;
+            --background: #f8fafc;
+            --foreground: #0f172a;
+            --border: rgba(15, 23, 42, 0.08);
+            --muted: #64748b;
         }
-        * { box-sizing: border-box; }
+
+        [data-bs-theme="dark"] {
+            --surface: #0f172a;
+            --background: #020617;
+            --foreground: #f1f5f9;
+            --border: rgba(255, 255, 255, 0.06);
+            --muted: #94a3b8;
+            --sidebar-bg: #020617;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background: #f1f5f9;
-            color: #0f172a;
+            background: var(--background);
+            color: var(--foreground);
             min-height: 100vh;
             overflow-x: hidden;
-        }
-        [data-bs-theme="dark"] body {
-            background: #060e1a;
-            color: #e2e8f0;
+            transition: background 0.3s ease, color 0.3s ease;
         }
         img { max-width: 100%; display: block; }
         a { color: inherit; }
@@ -125,9 +134,9 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
             flex-direction: column;
             z-index: 1040;
             border-right: 1px solid var(--sidebar-border);
-            transition: transform .25s ease;
+            transition: transform .3s cubic-bezier(0.4, 0, 0.2, 1);
             overflow-y: auto;
-            overflow-x: hidden;
+            color: #fff;
         }
         .app-sidebar.sidebar-closed {
             transform: translateX(-100%);
@@ -156,81 +165,62 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
         .sidebar-brand {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 20px 20px 18px;
-            padding-right: 50px; /* room for close button */
-            border-bottom: 1px solid var(--sidebar-border);
+            gap: 14px;
+            padding: 32px 24px;
             text-decoration: none;
             flex-shrink: 0;
         }
         .sidebar-logo {
-            width: 44px; height: 44px;
-            border-radius: 12px;
+            width: 48px; height: 48px;
+            border-radius: 14px;
             background: linear-gradient(135deg, var(--brand), var(--accent));
             display: grid; place-items: center;
-            font-weight: 800; font-size: .95rem;
-            color: #fff; flex-shrink: 0;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            flex-shrink: 0;
             overflow: hidden;
         }
         .sidebar-logo img { width: 100%; height: 100%; object-fit: cover; }
-        .sidebar-brand-text { min-width: 0; overflow: hidden; }
+        .sidebar-brand-text { min-width: 0; }
         .sidebar-brand-text strong {
             display: block; color: #fff;
-            font-size: .95rem; font-weight: 700;
-            line-height: 1.2;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-size: 1.1rem; font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
         }
         .sidebar-brand-text span {
             display: block; color: var(--sidebar-text);
-            font-size: .72rem; margin-top: 2px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-size: 0.75rem; font-weight: 500;
+            margin-top: 4px;
         }
 
         /* Nav sections */
-        .sidebar-section { padding: 16px 12px 8px; flex: 1; }
-        .sidebar-group-card {
-            border: 1px solid rgba(255,255,255,.08);
-            border-radius: 14px;
-            background: rgba(255,255,255,.03);
-            padding: 10px;
-            margin-bottom: 12px;
-        }
+        .sidebar-section { padding: 24px 16px; flex: 1; }
         .sidebar-section-label {
-            font-size: .65rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .1em;
-            color: rgba(148,163,184,.55);
-            padding: 0 10px; margin-bottom: 6px;
+            font-size: 0.7rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.15em;
+            color: rgba(148,163,184,0.4);
+            padding: 0 12px; margin-bottom: 16px;
         }
         .nav-link-sidebar {
             display: flex; align-items: center; gap: 12px;
-            padding: 10px 12px;
-            border-radius: 10px;
+            padding: 12px 16px;
+            border-radius: 12px;
             color: var(--sidebar-text);
-            font-size: .875rem; font-weight: 500;
+            font-size: 0.9rem; font-weight: 600;
             text-decoration: none;
-            transition: all .18s ease;
-            border-left: 3px solid transparent;
-            margin-bottom: 2px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 4px;
             position: relative;
         }
-        .nav-link-sidebar i { font-size: 1rem; flex-shrink: 0; }
-        .nav-icon-box {
-            width: 28px; height: 28px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,.08);
-            background: rgba(255,255,255,.04);
-            display: inline-grid;
-            place-items: center;
-            flex-shrink: 0;
-        }
+        .nav-link-sidebar i { font-size: 1.1rem; }
         .nav-link-sidebar:hover {
-            background: rgba(255,255,255,.06);
             color: #fff;
+            background: rgba(255,255,255,0.05);
         }
         .nav-link-sidebar.active {
-            background: var(--sidebar-item-active);
-            color: var(--sidebar-text-active);
-            border-left-color: var(--sidebar-item-active-border);
+            color: #fff;
+            background: linear-gradient(90deg, rgba(20,184,166,0.15), transparent);
+            box-shadow: inset 3px 0 0 var(--brand);
         }
         .nav-badge {
             margin-left: auto;
@@ -1047,7 +1037,7 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
                 </div>
 
                 <?php
-                $adminCollapsed = !str_starts_with($currentPath, '/admin/');
+                $adminCollapsed = strpos($currentPath, '/admin/') !== 0;
                 $adminCollapseId = 'adminModulesCollapse';
                 ?>
                 <a class="nav-link-sidebar" data-bs-toggle="collapse"
@@ -1299,26 +1289,28 @@ function isNavActive(string $currentPath, string $navPath, string $match): bool 
     const isDesktop = () => window.innerWidth > 768;
 
     // ── Theme ──
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    root.setAttribute('data-bs-theme', savedTheme);
-    updateThemeIcons(savedTheme);
-
     function updateThemeIcons(theme) {
-        const iconClass = theme === 'dark' ? 'bi-sun' : 'bi-moon-stars';
-        document.querySelectorAll('#themeIcon, #topbarThemeIcon').forEach(el => {
-            el.className = 'bi ' + iconClass;
+        const isDark = theme === 'dark';
+        document.querySelectorAll('#themeIcon, #topbarThemeIcon, #themeToggleIcon').forEach(el => {
+            el.className = isDark ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
         });
     }
 
     function toggleTheme() {
-        const next = root.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+        const current = root.getAttribute('data-bs-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
         root.setAttribute('data-bs-theme', next);
         localStorage.setItem('theme', next);
         updateThemeIcons(next);
     }
 
-    document.getElementById('sidebarThemeToggle')?.addEventListener('click', toggleTheme);
-    document.getElementById('topbarThemeToggle')?.addEventListener('click', toggleTheme);
+    document.querySelectorAll('#sidebarThemeToggle, #topbarThemeToggle, #themeToggle').forEach(btn => {
+        btn.addEventListener('click', toggleTheme);
+    });
+
+    const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.setAttribute('data-bs-theme', savedTheme);
+    updateThemeIcons(savedTheme);
 
     // ── Sidebar collapse (desktop) ──
     function closeSidebarDesktop() {

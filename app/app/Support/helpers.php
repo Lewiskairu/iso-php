@@ -34,7 +34,7 @@ function env(string $key, mixed $default = null): mixed
             $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
             foreach ($lines as $line) {
                 $line = trim($line);
-                if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+                if ($line === '' || (isset($line[0]) && $line[0] === '#') || strpos($line, '=') === false) {
                     continue;
                 }
 
@@ -86,7 +86,7 @@ function app_request_path(string $uri): string
     }
 
     $basePath = app_base_path();
-    if ($basePath !== '' && str_starts_with($path, $basePath)) {
+    if ($basePath !== '' && strpos($path, $basePath) === 0) {
         $path = substr($path, strlen($basePath)) ?: '/';
     }
 
@@ -116,7 +116,7 @@ function external_url(?string $value): string
 
     if (
         preg_match('/^(https?:\/\/|mailto:|tel:|#)/i', $url) === 1
-        || str_starts_with($url, '//')
+        || (isset($url[0]) && $url[0] === '/' && isset($url[1]) && $url[1] === '/')
     ) {
         return $url;
     }
@@ -175,7 +175,7 @@ function e(?string $value): string
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
-function redirect(string $path): never
+function redirect(string $path)
 {
     header('Location: ' . url($path));
     exit;

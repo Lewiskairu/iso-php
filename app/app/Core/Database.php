@@ -58,9 +58,11 @@ final class Database
             PDO::ATTR_PERSISTENT         => false,
         ];
 
+        /*
         if ($driver === 'mysql') {
             $options[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET sql_mode=(SELECT CONCAT(@@sql_mode, ',ANSI_QUOTES'))";
         }
+        */
 
         self::$pdo = new PDO($dsn, $user, $pass, $options);
         return self::$pdo;

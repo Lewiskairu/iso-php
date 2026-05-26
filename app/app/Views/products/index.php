@@ -43,10 +43,18 @@
                         <p class="muted"><?= e((string) $product['description']) ?></p>
                     </div>
                     <div class="toolbar">
-                        <strong style="font-size:1.2rem;"><?= e((string) $product['currency']) ?> <?= e(number_format((float) $product['price'], 2)) ?></strong>
-                        <?php if (!empty($product['previousprice']) && (float) $product['previousprice'] > (float) $product['price']): ?>
-                            <span class="muted"><s><?= e((string) $product['currency']) ?> <?= e(number_format((float) $product['previousprice'], 2)) ?></s></span>
-                        <?php endif; ?>
+                        <?php 
+                        $effectivePrice = !empty($product['specialactive']) && !empty($product['specialprice']) ? (float) $product['specialprice'] : (float) $product['price'];
+                        $originalPrice = (float) $product['price'];
+                        ?>
+                        <div class="stack" style="gap:2px;">
+                            <?php if (!empty($product['specialactive']) && !empty($product['previousprice'])): ?>
+                                <span class="muted" style="font-size:0.75rem; text-decoration:line-through;"><?= e((string) $product['currency']) ?> <?= e(number_format((float) $product['previousprice'], 2)) ?></span>
+                            <?php elseif (!empty($product['specialactive']) && (float)$originalPrice > (float)$effectivePrice): ?>
+                                <span class="muted" style="font-size:0.75rem; text-decoration:line-through;"><?= e((string) $product['currency']) ?> <?= e(number_format($originalPrice, 2)) ?></span>
+                            <?php endif; ?>
+                            <strong style="font-size:1.15rem; color: <?= !empty($product['specialactive']) ? 'var(--brand)' : 'inherit' ?>;"><?= e((string) $product['currency']) ?> <?= e(number_format($effectivePrice, 2)) ?></strong>
+                        </div>
                     </div>
                 </div>
             </a>

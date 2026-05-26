@@ -9,9 +9,19 @@ use App\Repositories\CertificationRepository;
 use App\Repositories\NominationRepository;
 use App\Repositories\OrderRepository;
 use App\Repositories\ProductRepository;
+use App\Services\MailService;
+use App\Core\Database;
 
 final class PublicActionController extends Controller
 {
+    private MailService $mail;
+
+    public function __construct(\App\Core\Session $session)
+    {
+        parent::__construct($session);
+        $this->mail = new MailService();
+    }
+
     public function nominate(): void
     {
         $this->view('public/nominate', [
@@ -22,16 +32,31 @@ final class PublicActionController extends Controller
 
     public function saveNomination(): void
     {
-        (new NominationRepository())->create([
+        $payload = [
             'nominatorName' => trim((string) ($_POST['nominatorName'] ?? '')),
             'nominatorEmail' => trim((string) ($_POST['nominatorEmail'] ?? '')),
             'nomineeName' => trim((string) ($_POST['nomineeName'] ?? '')),
             'nomineeEmail' => trim((string) ($_POST['nomineeEmail'] ?? '')),
             'nominationType' => trim((string) ($_POST['nominationType'] ?? 'ORGANISATION')),
             'reason' => trim((string) ($_POST['reason'] ?? '')),
-        ]);
+        ];
 
-        $this->session->flash('success', 'Nomination submitted.');
+        (new NominationRepository())->create($payload);
+
+        // Send Emails
+        $this->mail->sendNominationAlert($payload['nominatorEmail'], $payload['nominatorName'], $payload['nomineeName'], $payload['nominationType'], 'nominator');
+        
+        if (!empty($payload['nomineeEmail'])) {
+            $this->mail->sendNominationAlert($payload['nomineeEmail'], $payload['nominatorName'], $payload['nomineeName'], $payload['nominationType'], 'nominee');
+        }
+
+        // Alert organization (admin)
+        $adminEmail = Database::query('SELECT value FROM site_settings WHERE `key` = "smtp_user" LIMIT 1')->fetchColumn();
+        if ($adminEmail) {
+            $this->mail->sendNominationAlert((string)$adminEmail, $payload['nominatorName'], $payload['nomineeName'], $payload['nominationType'], 'organization');
+        }
+
+        $this->session->flash('success', 'Nomination submitted successfully! Emails have been sent.');
         redirect('/nominate');
     }
 
@@ -194,22 +219,6 @@ final class PublicActionController extends Controller
         ]);
     }
 
-    public function order(): void
-    {
-        $user = $this->requireAuth();
-        $orderId = (string) ($_GET['id'] ?? '');
-        $order = (new OrderRepository())->findForUser($orderId, $user['id']);
-        if (!$order) {
-            http_response_code(404);
-            exit('Order not found');
-        }
-
-        $this->view('public/order', [
-            'title' => 'Order ' . $orderId,
-            'order' => $order,
-        ]);
-    }
-
     public function submitCheckout(): void
     {
         $user = $this->requireAuth();
@@ -229,16 +238,9 @@ final class PublicActionController extends Controller
                 redirect('/checkout');
             }
 
-            $requestedQuantity = (int) $item['quantity'];
-            $stock = (int) ($fresh['stock'] ?? 0);
-            if ($stock > 0 && $requestedQuantity > $stock) {
-                $this->session->flash('error', 'Stock changed for ' . ($fresh['name'] ?? 'a product') . '. Update your cart and try again.');
-                redirect('/cart');
-            }
-
             $lineItems[] = [
                 'product_id' => $fresh['id'],
-                'quantity' => $requestedQuantity,
+                'quantity' => (int) $item['quantity'],
                 'price' => (float) $fresh['price'],
             ];
         }
@@ -246,9 +248,41 @@ final class PublicActionController extends Controller
         $currency = (string) ($items[0]['currency'] ?? 'USD');
         $orderId = (new OrderRepository())->createOrder($user['id'], $lineItems, $currency);
 
+        // Send Email
+        $this->mail->sendOrderConfirmation($user['email'], $orderId, (string)$total, $currency);
+
         unset($_SESSION['cart']);
-        $this->session->flash('success', 'Order ' . $orderId . ' created successfully. Payment integration can now be connected to this order.');
-        redirect('/checkout');
+        $this->session->flash('success', 'Order ' . $orderId . ' placed! Confirmation email sent.');
+        redirect('/orders/track?id=' . $orderId);
+    }
+
+    public function order(): void
+    {
+        $user = $this->requireAuth();
+        $orderId = (string) ($_GET['id'] ?? '');
+        $order = (new OrderRepository())->findForUser($orderId, $user['id']);
+        if (!$order) {
+            http_response_code(404);
+            exit('Order not found');
+        }
+
+        $this->view('public/order', [
+            'title' => 'Order ' . $orderId,
+            'order' => $order,
+        ]);
+    }
+
+    public function trackOrder(): void
+    {
+        $user = $this->requireAuth();
+        $orderId = (string) ($_GET['id'] ?? '');
+        $order = (new OrderRepository())->findForUser($orderId, $user['id']);
+
+        $this->view('public/track', [
+            'title' => 'Track Order',
+            'order' => $order,
+            'orderId' => $orderId,
+        ]);
     }
 
     private function cartSnapshot(): array
@@ -261,11 +295,6 @@ final class PublicActionController extends Controller
             $quantity = max(1, (int) $qty);
             $product = $repo->findActiveProduct((string) $productId);
             if ($product) {
-                $stock = (int) ($product['stock'] ?? 0);
-                if ($stock > 0) {
-                    $quantity = min($quantity, $stock);
-                    $_SESSION['cart'][$productId] = $quantity;
-                }
                 $product['quantity'] = $quantity;
                 $product['line_total'] = (float) $product['price'] * $quantity;
                 $total += $product['line_total'];

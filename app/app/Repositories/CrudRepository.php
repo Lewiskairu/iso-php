@@ -193,7 +193,7 @@ final class CrudRepository
             if (
                 $partnerUrl !== ''
                 && preg_match('/^(https?:\/\/|mailto:|tel:|#)/i', $partnerUrl) !== 1
-                && !str_starts_with($partnerUrl, '//')
+                && strpos($partnerUrl, '//') !== 0
             ) {
                 $partnerUrl = 'https://' . ltrim($partnerUrl, '/');
             }
@@ -215,7 +215,7 @@ final class CrudRepository
         foreach (['cta_link', 'secondary_cta_link'] as $linkField) {
             if (isset($payload[$linkField]) && is_string($payload[$linkField])) {
                 $ctaLink = trim($payload[$linkField]);
-                if ($ctaLink !== '' && preg_match('/^https?:\/\//i', $ctaLink) !== 1 && !str_starts_with($ctaLink, '/')) {
+                if ($ctaLink !== '' && preg_match('/^https?:\/\//i', $ctaLink) !== 1 && strpos($ctaLink, '/') !== 0) {
                     $ctaLink = '/' . ltrim($ctaLink, '/');
                 }
                 $payload[$linkField] = $ctaLink === '' ? null : $ctaLink;
@@ -298,21 +298,41 @@ final class CrudRepository
             return null;
         }
 
-        $mime = mime_content_type((string) $file['tmp_name']) ?: '';
-        if (!str_starts_with($mime, 'image/')) {
+        $tmpName = (string) ($file['tmp_name'] ?? '');
+        if ($tmpName === '' || !is_uploaded_file($tmpName)) {
             return null;
+        }
+
+        // Try multiple ways to get mime type
+        $mime = '';
+        if (function_exists('mime_content_type')) {
+            $mime = (string) @mime_content_type($tmpName);
+        }
+        
+        if ($mime === '' && function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = (string) @finfo_file($finfo, $tmpName);
+            finfo_close($finfo);
+        }
+
+        // If mime still empty or not image, check extension as fallback for some environments
+        if (strpos($mime, 'image/') !== 0) {
+            $extension = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+            if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'ico'], true)) {
+                return null;
+            }
         }
 
         $extension = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION) ?: 'jpg');
         $segment = preg_replace('/[^a-z0-9_-]+/i', '-', $namespace) ?: 'media';
         $directory = BASE_PATH . '/public/uploads/' . $segment;
         if (!is_dir($directory)) {
-            mkdir($directory, 0775, true);
+            @mkdir($directory, 0775, true);
         }
 
         $filename = time() . '-' . bin2hex(random_bytes(6)) . '.' . $extension;
         $target = $directory . '/' . $filename;
-        if (!move_uploaded_file((string) $file['tmp_name'], $target)) {
+        if (!@move_uploaded_file($tmpName, $target)) {
             return null;
         }
 

@@ -71,18 +71,29 @@ final class AdminCrudController extends Controller
             'type' => (string) ($_GET['type'] ?? ''),
             'label' => (string) ($_GET['label'] ?? ''),
         ];
-        if ($moduleKey === 'products' && !$id) {
-            $currency = (string) (Database::query(
-                'SELECT "value"
-                 FROM "site_settings"
-                 WHERE "key" IN (\'currency\', \'currency_code\')
-                 ORDER BY CASE WHEN "key" = \'currency\' THEN 0 ELSE 1 END
-                 LIMIT 1'
-            )->fetchColumn() ?: 'USD');
-            $productDefaults = [
-                'currency' => strtoupper($currency),
-                'sku' => 'PRD-' . date('ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)),
-            ];
+        if ($moduleKey === 'products') {
+            $categories = Database::query('SELECT id, name FROM categories WHERE active = 1 ORDER BY name ASC')->fetchAll();
+            $categoryOptions = [];
+            foreach ($categories as $cat) {
+                $categoryOptions[$cat['id']] = $cat['name'];
+            }
+            if (isset($module['fields']['categoryId'])) {
+                $module['fields']['categoryId']['options'] = $categoryOptions;
+            }
+
+            if (!$id) {
+                $currency = (string) (Database::query(
+                    'SELECT "value"
+                     FROM "site_settings"
+                     WHERE "key" IN (\'currency\', \'currency_code\')
+                     ORDER BY CASE WHEN "key" = \'currency\' THEN 0 ELSE 1 END
+                     LIMIT 1'
+                )->fetchColumn() ?: 'USD');
+                $productDefaults = [
+                    'currency' => strtoupper($currency),
+                    'sku' => 'PRD-' . date('ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6)),
+                ];
+            }
         }
         if ($moduleKey === 'hero_slides' && !$id) {
             $nextSortOrder = (int) (Database::query(
@@ -199,7 +210,7 @@ final class AdminCrudController extends Controller
 
         // Legacy/theme keys in existing DB often have empty category; infer by key pattern.
         if ($categoryFilter === 'appearance_theme') {
-            $match = str_starts_with($rowKey, 'theme_')
+            $match = (strpos($rowKey, 'theme_') === 0)
                 || in_array($rowKey, ['default_theme_mode', 'font_family', 'border_radius', 'button_style'], true);
             return ['match' => $match, 'inferred' => $match];
         }

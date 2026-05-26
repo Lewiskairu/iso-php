@@ -40,18 +40,25 @@ final class Router
         }
 
         [$class, $action] = $handler;
-        $controller = new $class($this->session);
 
         try {
+            $controller = new $class($this->session);
             $controller->{$action}();
         } catch (Throwable $e) {
             http_response_code(500);
+            
+            // In a production environment, we show a clean error message. 
+            // We check app.debug to decide whether to show details.
             if ((bool) config('app.debug', false)) {
-                echo '<pre>' . e($e->getMessage() . PHP_EOL . $e->getTraceAsString()) . '</pre>';
+                echo '<h1>Application Error</h1>';
+                echo '<p><strong>' . e($e->getMessage()) . '</strong></p>';
+                echo '<p>Location: ' . e($e->getFile()) . ' on line ' . $e->getLine() . '</p>';
+                echo '<pre>' . e($e->getTraceAsString()) . '</pre>';
                 return;
             }
 
-            echo 'Application error';
+            echo '<h1>Application Error</h1>';
+            echo '<p>We are sorry, but something went wrong. Please try again later.</p>';
         }
     }
 }

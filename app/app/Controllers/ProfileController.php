@@ -55,7 +55,7 @@ final class ProfileController extends Controller
         }
 
         $mime = mime_content_type((string) $file['tmp_name']) ?: '';
-        if (!str_starts_with($mime, 'image/')) {
+        if (strpos($mime, 'image/') !== 0) {
             return null;
         }
 

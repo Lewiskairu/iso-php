@@ -9,6 +9,7 @@ use App\Controllers\AuthController;
 use App\Controllers\ContentController;
 use App\Controllers\DashboardController;
 use App\Controllers\HomeController;
+use App\Controllers\OAuthController;
 use App\Controllers\PartnerController;
 use App\Controllers\ProductController;
 use App\Controllers\ProfileController;
@@ -31,7 +32,14 @@ $router->get('/login', [AuthController::class, 'showLogin']);
 $router->post('/login', [AuthController::class, 'login']);
 $router->get('/signup', [AuthController::class, 'showSignup']);
 $router->post('/signup', [AuthController::class, 'signup']);
+$router->get('/verify-email', [AuthController::class, 'verifyEmail']);
+$router->get('/forgot-password', [AuthController::class, 'showForgotPassword']);
+$router->post('/forgot-password', [AuthController::class, 'forgotPassword']);
+$router->get('/reset-password', [AuthController::class, 'showResetPassword']);
+$router->post('/reset-password', [AuthController::class, 'resetPassword']);
 $router->get('/logout', [AuthController::class, 'logout']);
+$router->get('/auth/google', [OAuthController::class, 'loginWithGoogle']);
+$router->get('/auth/google/callback', [OAuthController::class, 'handleGoogleCallback']);
 
 $router->get('/dashboard', [DashboardController::class, 'index']);
 
@@ -57,6 +65,7 @@ $router->get('/products', [ProductController::class, 'index']);
  $router->get('/checkout', [PublicActionController::class, 'checkout']);
  $router->post('/checkout', [PublicActionController::class, 'submitCheckout']);
  $router->get('/orders/show', [PublicActionController::class, 'order']);
+ $router->get('/orders/track', [PublicActionController::class, 'trackOrder']);
 
 $router->get('/admin', [AdminController::class, 'index']);
 $router->get('/admin/settings', [AdminController::class, 'settings']);
