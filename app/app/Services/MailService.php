@@ -167,9 +167,13 @@ final class MailService
         $message = implode("\r\n", [
             "Date: {$date}",
             "From: =?UTF-8?B?" . base64_encode($this->fromName) . "?= <{$this->fromEmail}>",
+            "Reply-To: <{$this->fromEmail}>",
+            "Return-Path: <{$this->fromEmail}>",
             "To: {$to}",
             "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=",
             "Message-ID: {$msgId}",
+            "X-Priority: 3 (Normal)",
+            "X-Mailer: PHP/" . phpversion(),
             "MIME-Version: 1.0",
             "Content-Type: text/html; charset=UTF-8",
             "Content-Transfer-Encoding: base64",
